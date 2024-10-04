@@ -1,0 +1,8 @@
+{
+  "C_Cpp.intelliSenseEngine": "default",
+  "files.associations": {
+    "cstdio": "c",
+    "esp_littlefs.h": "c",
+    "stat.h": "c"
+  }
+}
