@@ -3,6 +3,8 @@
   "files.associations": {
     "cstdio": "c",
     "esp_littlefs.h": "c",
-    "stat.h": "c"
-  }
+    "stat.h": "c",
+    "ledc.h": "c"
+  },
+  "idf.adapterTargetName": "esp32"
 }

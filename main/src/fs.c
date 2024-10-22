@@ -15,7 +15,7 @@ last update: 04.10.2024
 
 #define READ_SIZE               255
 
-static const char *LOG_TAG = "File System";
+static const char *LOG_TAG = "FILE_SYS";
 static esp_vfs_littlefs_conf_t conf = {
         .base_path = "/littlefs",
         .partition_label = "littlefs",
@@ -91,12 +91,12 @@ esp_err_t fs_delateFile(uint8_t fID){
     return ESP_OK;
 }
 
-esp_err_t findID(uint8_t *fID){
+esp_err_t fs_findID(uint8_t *fID){
     for(uint8_t i = 0; i < 6; i++){
         if (arrFiles[i].open == FILE_CLOSED){
             arrFiles[i].id = i;
             *fID = i;
-            return ESP_ERR_FLASH_BASE;
+            return ESP_OK;
         }
     }
     return ESP_FAIL;

@@ -5,23 +5,31 @@
 #include <sys/unistd.h>
 #include <sys/stat.h>
 
-/*------------------------------------------
-findID - returns ID of the free to use file.
-fID     - OUT, ID of the free to use file handler
--------------------------------------------*/
-esp_err_t findID(uint8_t *fID);
+/**
+ * @brief This function checks if there is free to use file handler.
+ * 
+ * @param fID - OUT, ptr to ID of the free to use file handler
+ * 
+ * @returns ESP_OK if ID has been found, else ESP_FAIL.
+ **/
+esp_err_t fs_findID(uint8_t *fID);
 
-/*------------------------------------------
-fs_mount - file system mounting on the devie
--------------------------------------------*/
+/**
+ * @brief This function mounts file system on the device.
+ * 
+ * @returns ESP_OK if system has been mounted succesfully, else ESP_FAIL.
+ **/
 esp_err_t fs_mount(void);
 
-/*------------------------------------------
-fs_readFile - reading the file (hardcoded size - 255 Bytes), returns amount of the read bytes
-fID     - IN, ID of the free to use file handler
-fName   - IN, name of the file to be read
-buffer  - OUT, ptr to array where data will be stored
--------------------------------------------*/
+/**
+ * @brief reading from file 255 bytes or less.
+ * 
+ * @param fID - OUT, ptr to ID file handler
+ * @param fName - IN, name of the file to be read
+ * @param buffer  - OUT, ptr to array where data will be stored
+ * 
+ * @returns amount of readen bytes.
+ **/
 size_t fs_readFile(uint8_t fID, char* fName, char* buffer);
 
 /*------------------------------------------
