@@ -170,22 +170,40 @@ esp_err_t  get_EventHandler(httpd_req_t *req) {
     size_t      readBytes;
     uint16_t    totalReadBytes = 0;
     size_t bufferLen = httpd_req_get_url_query_len(req);
+    
     if (bufferLen > 0) {
-        buffer = malloc(bufferLen);
-        if (httpd_req_get_url_query_str(req, buffer, bufferLen) == ESP_OK){
+        buffer = malloc(bufferLen+1);
+        memset(buffer, 0, bufferLen+1);
+        if (httpd_req_get_url_query_str(req, buffer, bufferLen+1) == ESP_OK){
             char key[64];
-            //  example: 192.168.0.10/?page=main
+            //  example: 192.168.0.10/get?page=main
             /* TODO: tak powinna być zrobiona strona. Tj klikasz przycisk, wczytywana jest nowa strone z innym key value.*/
-            if (httpd_query_key_value(buffer,"page", key, sizeof(key)) == ESP_OK) {
-                if (strcmp(key, "main")) {
+            if (httpd_query_key_value(buffer,"page", key, 64) == ESP_OK) {
+                if (!strcmp(key, "main")) {
+                    ESP_LOGW(TAG[1],"SENDING MAIN");
+                    ESP_LOGI(TAG[1], "FINDING ID");
                     if (fs_findID(&fileID) == ESP_OK) { 
+                        ESP_LOGI(TAG[1], "MAALLOCKING");
                         pageText = malloc(MAX_PAGE_SIZE);
+                        if (pageText == NULL){
+                            ESP_LOGE(TAG[1],"KURWA MALLOC FAIL");
+                        }
+                        ESP_LOGI(TAG[1], "MALLOCK DONE");
+                        if (ESP_OK == fs_openFile(fileID, "main_page.html")){
+                            ESP_LOGI(TAG[1], "file open");
+                        }
+                        else{
+                            ESP_LOGW(TAG[1], "file open fail");
+                        }
                         do {
-                            readBytes = fs_readFile(fileID, "main_page.html", pageText);
+                            readBytes = fs_readFile(fileID, "main_page.html", pageText+totalReadBytes,totalReadBytes);
+                            ESP_LOGI(TAG[1], "READED %d", totalReadBytes);
                             totalReadBytes += readBytes;
                         } while(readBytes == READ_SIZE);
                         if (totalReadBytes > 0) {
-                            if (httpd_resp_send(req, pageText, sizeof(pageText)) == ESP_OK) {
+                            ESP_LOGI(TAG[1],"PLIK HTML:: %s", pageText);
+                            ESP_LOGI(TAG[1],"PLIK HTML:: %d", sizeof(pageText));
+                            if (httpd_resp_send(req, pageText, totalReadBytes) == ESP_OK) {
                                 ESP_LOGI(TAG[1], "Main page has been sent");
                             }
                             else {
@@ -195,11 +213,11 @@ esp_err_t  get_EventHandler(httpd_req_t *req) {
                         free(pageText);
                     }
                 }
-                else if (strcmp(key, "config")) {
+                else if (!strcmp(key, "config")) {
                     if (fs_findID(&fileID) == ESP_OK) { 
                         pageText = malloc(MAX_PAGE_SIZE);
                         do {
-                            readBytes = fs_readFile(fileID, "config_page.html", pageText);
+                            readBytes = fs_readFile(fileID, "config_page.html", pageText+totalReadBytes,totalReadBytes);
                             totalReadBytes += readBytes;
                         } while(readBytes == READ_SIZE);
                         if (totalReadBytes > 0) {
@@ -216,23 +234,35 @@ esp_err_t  get_EventHandler(httpd_req_t *req) {
             }
         }
         else {
-            /* TODO: SEND DEFAULTA PAGE - MAIN -> for example: 192.168.0.10*/
+            ESP_LOGW(TAG[1],"buffer, %s",buffer);
+            ESP_LOGW(TAG[1],"SENDING DEFAULT");
             if (fs_findID(&fileID) == ESP_OK) { 
-                pageText = malloc(MAX_PAGE_SIZE);
-                do {
-                    readBytes = fs_readFile(fileID, "main_page.html", pageText);
-                    totalReadBytes += readBytes;
-                } while(readBytes == READ_SIZE);
-                if (totalReadBytes > 0) {
-                    if (httpd_resp_send(req, pageText, sizeof(pageText)) == ESP_OK) {
-                        ESP_LOGI(TAG[1], "Main page has been sent");
+                        ESP_LOGI(TAG[1], "MAALLOCKING");
+                        pageText = malloc(MAX_PAGE_SIZE);
+                        ESP_LOGI(TAG[1], "MALLOCK DONE");
+                        if (ESP_OK == fs_openFile(fileID, "main_page.html")){
+                            ESP_LOGI(TAG[1], "file open");
+                        }
+                        else{
+                            ESP_LOGW(TAG[1], "file open fail");
+                        }
+                        do {
+                            readBytes = fs_readFile(fileID, "main_page.html", pageText+totalReadBytes,totalReadBytes);
+                            totalReadBytes += readBytes;
+                            ESP_LOGI(TAG[1], "READED %d", totalReadBytes);
+                        } while(readBytes == READ_SIZE);
+                        ESP_LOGI(TAG[1],"PLIK HTML:: %s", pageText);
+                        ESP_LOGI(TAG[1],"PLIK HTML:: %d", sizeof(pageText));
+                        if (totalReadBytes > 0) {
+                            if (httpd_resp_send(req, pageText, totalReadBytes) == ESP_OK) {
+                                ESP_LOGI(TAG[1], "Main page has been sent");
+                            }
+                            else {
+                                ESP_LOGE(TAG[1], "Main page has not been sent. Read bytes from file is equal to 0!");
+                            }
+                        }
+                        free(pageText);
                     }
-                    else {
-                        ESP_LOGE(TAG[1], "Main page has not been sent. Read bytes from file is equal to 0!");
-                    }
-                }
-                free(pageText);
-            }
             else {
                 ESP_LOGE(TAG[1], "No free file enabled.");
             }
@@ -246,7 +276,7 @@ esp_err_t  post_EventHandler(httpd_req_t *req) {
 }
 
 httpd_uri_t uri_get = {
-    .uri = "/",
+    .uri = "/get",
     .method = HTTP_GET,
     .handler = get_EventHandler,
     .user_ctx = NULL };

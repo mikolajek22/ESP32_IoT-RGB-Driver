@@ -30,6 +30,33 @@ typedef struct {
 
 static fileID arrFiles[6];
 
+esp_err_t fs_openFile(uint8_t fID, char* fName) {
+    char fileName[255] = "/littlefs/";
+    strcat(fileName,fName);
+    if (arrFiles[fID].open == FILE_CLOSED){
+        arrFiles[fID].file = fopen(fileName,"r");
+        arrFiles[fID].open = FILE_OPENED;
+        ESP_LOGI(LOG_TAG, "File opened!");
+        return ESP_OK;
+    }
+    else {
+        ESP_LOGE(LOG_TAG, "File opening error - file already opened!");
+        return ESP_FAIL;
+    }
+}
+esp_err_t fs_closeFile(uint8_t fID) {
+    if (arrFiles[fID].open == FILE_OPENED){
+        fclose(arrFiles[fID].file);
+        arrFiles[fID].open = FILE_CLOSED;
+        ESP_LOGI(LOG_TAG, "File opened!");
+        return ESP_OK;
+    }
+    else {
+        ESP_LOGE(LOG_TAG, "File already closed");
+        return ESP_FAIL;
+    }
+}
+
 // Mounting file sys
 esp_err_t fs_mount(void){
     ESP_LOGI(LOG_TAG, "Initializing Little File System");
@@ -47,25 +74,19 @@ esp_err_t fs_mount(void){
     return ret;
 }
 
-size_t fs_readFile(uint8_t fID, char* fName, char* buffer){
-    char fileName[255] = "/littlefs/";
-    strcat(fileName,fName);
-    if (arrFiles[fID].open == FILE_CLOSED){
-        arrFiles[fID].file = fopen(fileName,"r");
-        if (arrFiles[fID].file != NULL){
-            arrFiles[fID].open = FILE_OPENED;
-            return fread(buffer, 1, READ_SIZE, arrFiles[fID].file);
-        }
-        else {
-            ESP_LOGE(LOG_TAG, "File opening error!");
-            return -1;
-        }
+size_t fs_readFile(uint8_t fID, char* fName, char* buffer, size_t offest){
+    size_t readBytes;
+    if (arrFiles[fID].file != NULL){
+        // fseek(arrFiles[fID].file, offest, SEEK_SET);
+        readBytes = fread(buffer, 1, READ_SIZE, arrFiles[fID].file);
+        return readBytes;
     }
     else {
-        ESP_LOGE(LOG_TAG, "File opening error - file already opened!");
-        return -1;
+        ESP_LOGE(LOG_TAG, "File is null!");
+         return ESP_FAIL;
     }
 }
+
 
 size_t fs_writeFile(uint8_t fID, char* fName, char* buffer, uint16_t writeSize){
     char fileName[255] = "/littlefs/";

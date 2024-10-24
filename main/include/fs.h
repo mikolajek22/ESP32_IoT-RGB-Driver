@@ -5,6 +5,9 @@
 #include <sys/unistd.h>
 #include <sys/stat.h>
 
+
+esp_err_t fs_openFile(uint8_t fID, char* fName);
+esp_err_t fs_closeFile(uint8_t fID);
 /**
  * @brief This function checks if there is free to use file handler.
  * 
@@ -30,7 +33,7 @@ esp_err_t fs_mount(void);
  * 
  * @returns amount of readen bytes.
  **/
-size_t fs_readFile(uint8_t fID, char* fName, char* buffer);
+size_t fs_readFile(uint8_t fID, char* fName, char* buffer, size_t offest);
 
 /*------------------------------------------
 fs_writeFile - reading the file (hardcoded size - 255 Bytes), returns amount of written bytes
