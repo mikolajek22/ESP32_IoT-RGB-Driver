@@ -43,7 +43,6 @@ int COLOR_PINS[3]={RED_LED_PIN,GREEN_LED_PIN, BLUE_LED_PIN};
 bool sequence_status;
 int sequence_no;
 bool breakFlag;
-char on_resp[];
 
 
 static const char *TAG = "MAIN"; // TAG for debug

@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8"/>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" />
+        <title>RGB Driver</title>
+
+
+        <style>
+             body {
+                margin: 0;
+                padding: 0;
+                height: 100vh;
+                display: flex;
+                flex-direction: column;
+            }
+
+            #header {
+                background-color: #3a3a3a;
+                width: 100%;
+                height: 10%;
+                display: flex;
+                align-items: center;
+            }
+
+            #header_title {
+                margin-left: 5%;
+                font-family: Verdana, Geneva, Tahoma, sans-serif;
+                display: flex;
+                color: rgb(255, 75, 180);
+                font-size: 5vw;
+                text-shadow: 
+                    2px 2px 0 white, 
+                    -2px 2px 0 white, 
+                    2px -2px 0 white, 
+                    -2px -2px 0 white, 
+                    2px 0 0 white, 
+                    -2px 0 0 white, 
+                    0 2px 0 white, 
+                    0 -2px 0 white;
+            }
+
+            #container {
+                display: flex;
+                flex-grow: 1;
+                height: 80%;
+            }
+                #nav {
+                    background-color: #afafaf;
+                    width: 10%;
+                    height: 100%;
+                    box-shadow: 
+                        2px 2px 0 black, 
+                        -2px 2px 0 black, 
+                        2px -2px 0 black, 
+                        -2px -2px 0 black, 
+                        2px 0 0 black, 
+                        -2px 0 0 black, 
+                        0 2px 0 black, 
+                        0 -2px 0 black;
+                    display: flex;
+                    /* justify-content: center; */
+                    flex-direction: column;
+                    align-items: center;
+                }
+
+                    #nav_text {
+                        text-align: center;
+                        display: flex;
+                        font-size: 1vw;
+                        text-shadow: 
+                            1px 1px 0 white, 
+                            -1px 1px 0 white, 
+                            1px -1px 0 white, 
+                            -1px -1px 0 white, 
+                            1px 0 0 white, 
+                            -1px 0 0 white, 
+                            0 1px 0 white, 
+                            0 -1px 0 white;
+                    }
+
+                #content {
+                    background-color: #d4d4d4;
+                    width: 90%;
+                    height: 100%;
+                    box-shadow: 
+                        2px 2px 0 black, 
+                        -2px 2px 0 black, 
+                        2px -2px 0 black, 
+                        -2px -2px 0 black, 
+                        2px 0 0 black, 
+                        -2px 0 0 black, 
+                        0 2px 0 black, 
+                        0 -2px 0 black;
+                }
+
+
+        </style>
+    </head>
+    <body>
+        <div id="header">
+            <h1 id="header_title">RGB Driver</h1>
+        </div>
+        <div id="container">
+            <div id="nav">
+                <i class="fa fa-solid fa-inbox", style="font-size: 3vw; color: rgb(255, 75, 180); 
+                    text-shadow: 
+                        2px 2px 0 black, 
+                        -2px 2px 0 black, 
+                        2px -2px 0 black, 
+                        -2px -2px 0 black, 
+                        2px 0 0 black, 
+                        -2px 0 0 black, 
+                        0 2px 0 black, 
+                        0 -2px 0 black;
+                    display: flex;
+                    margin-top: 50px;", onclick="changePage('main')">
+                </i>
+                <h2 id="nav_text">
+                    HOME
+                </h2>
+
+                <i class="fa fa-solid fa-gear", style="font-size: 3vw; color: rgb(255, 75, 180); text-shadow: 2px 2px 0 black, 
+                    -2px 2px 0 black, 
+                    2px -2px 0 black, 
+                    -2px -2px 0 black, 
+                    2px 0 0 black, 
+                    -2px 0 0 black, 
+                    0 2px 0 black, 
+                    0 -2px 0 black;
+                    display: flex;
+                    margin-top: 50px;", onclick="changePage('config')">
+                </i>
+                <h2 id="nav_text">
+                    CONFIGURATION
+                </h2>
+                
+                <i class="fa fa-solid fa-lightbulb", style="font-size: 3vw; color: rgb(255, 75, 180); text-shadow: 2px 2px 0 black, 
+                    -2px 2px 0 black, 
+                    2px -2px 0 black, 
+                    -2px -2px 0 black, 
+                    2px 0 0 black, 
+                    -2px 0 0 black, 
+                    0 2px 0 black, 
+                    0 -2px 0 black; display: flex;
+                    margin-top: 50px;", onclick="changePage('control')">
+                </i>
+                <h2 id="nav_text">
+                    RGB<br>CONTROLLER
+                </h2>
+            </div>
+            <div id="content">
+                <table>
+                    <tr>
+                        <td><h3>WiFi name:</h3></td>
+                        <td style="padding-left: 50px;"><h3><span id="wifi_name">Loading...</span></h3></td>
+                    </tr>
+                    <tr>
+                        <td><h3>WiFi password:</h3></td>
+                        <td style="padding-left: 50px;"><h3><span id="wifi_password">Loading...</span></h3></td>
+                    </tr>
+                    <tr>
+                        <td><h3>IP address:</h3></td>
+                        <td style="padding-left: 50px;"><h3><span id="ip_addr">Loading...</span></h3></td>
+                    </tr>
+                    <tr>
+                        <td><h3>Subnet mask:</h3></td>
+                        <td style="padding-left: 50px;"><h3><span id="mask">Loading...</span></h3></td>
+                    </tr>
+                    <tr>
+                        <td><h3>Firmware version:</h3></td>
+                        <td style="padding-left: 50px;"><h3><span id="fw_v">Loading...</span></h3></td>
+                    </tr>
+                </table>
+            </div>
+            <script>
+                function changePage(page){
+                    switch(page){
+                        case 'main':
+                            window.location.href = '/get?page=main';
+                            break
+                        case 'config':
+                            window.location.href = '/get?page=config';
+                            break
+                        case 'control':
+                            window.location.href = '/get?page=control';
+                            break
+                    }
+                }
+
+                function infoFetch(){
+                    fetch('/info')
+                        .then(response=>response.json())
+                        .then(data=>{
+                            document.getElementById('wifi_name').textContent=data.wifiName;
+                            document.getElementById('wifi_password').textContent=data.wifiPass;
+                            document.getElementById('ip_addr').textContent=data.ipAddr;
+                            document.getElementById('mask').textContent=data.subnetMask;
+                            document.getElementById('fw_v').textContent=data.fwV;
+                        })
+                }
+                window.onload = infoFetch;
+            </script>
+        </div>
+    </body>
+</html>

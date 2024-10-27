@@ -1,163 +1,207 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="icon" href="data:,">
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jscolor/2.0.4/jscolor.min.js"></script>
-    <style>
-        h1 {
-            text-align: center;
-            text-shadow: rgb(98, 40, 40);
-            font-weight: bold;
-            background-color: #2c2c2c;
-            text-decoration-color: antiquewhite;
-            padding: 20px;
-            width: 500px;
-        }
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #000000;
-            color: #ffffff;
-        }
-        .container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 180vh;
-        }
-        input.jscolor {
-            background-color: #2c2c2c;
-            color: #000000;
-            padding: 8px;
-            font-size: 30px;
-            text-align: center;
-            margin-top: 20px;
-        }
-        .btn-primary-red {
-            background-color: #FF0000;
-            margin: 20px;
-            font-size: 20px;
-            text-align: center;
-            font-weight: bold;
-            color: rgb(255, 255, 255);
-            border: 3px solid;
-            border-color: white;
-            width: 200px;
-        }
-        .btn-primary-green {
-            background-color: #00ff00;
-            margin: 20px;
-            font-size: 20px;
-            text-align: center;
-            font-weight: bold;
-            color: rgb(255, 255, 255);
-            border: 3px solid;
-            border-color: white;
-            width: 200px;
-        }
-        .btn-primary-blue {
-            background-color: #0000ff;
-            margin: 20px;
-            font-size: 20px;
-            text-align: center;
-            font-weight: bold;
-            color: rgb(255, 255, 255);
-            border: 3px solid;
-            border-color: white;
-            width: 200px;
-        }
-        .btn-primary-white {
-            background-color: #b1b1b1;
-            margin: 20px;
-            font-size: 20px;
-            text-align: center;
-            font-weight: bold;
-            color: rgb(255, 255, 255);
-            border: 3px solid;
-            border-color: white;
-            width: 200px;
-        }
-        .btn-primary-off {
-            background-color: #000000;
-            margin: 20px;
-            font-size: 20px;
-            text-align: center;
-            font-weight: bold;
-            color: rgb(255, 255, 255);
-            border: 3px solid;
-            border-color: white;
-            width: 200px;
-        }
-        .btn-primary-seq {
-            background-color: #000000;
-            margin: 20px;
-            font-size: 20px;
-            text-align: center;
-            font-weight: bold;
-            color: rgb(255, 255, 255);
-            border: 3px solid;
-            border-color: white;
-            width: 200px;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="row">
-            <h1 style="color: white; border: 4px solid rgb(255, 255, 255)">ESP Webserver<br>Choose RGB color</h1>
-        </div>
-        <h2 style="color: white; font-size: 20px;"><br>click below to open RGB palette!<br></h2>
-        <input class="jscolor {onFineChange:'update(this)'}"  id="rgb" value="000000" style="border: 4px solid rgb(255, 255, 255)">
-        <h2 style="color: white; font-size: 20px;"><br><br><br>Click one of the buttons to choose clear Red, Green, Blue, White, or Turn Off!<br></h2>
-        <button class="btn btn-primary-red" background-color="FF0000" onclick="setColorAndUri('/RED')">Set to RED</button>
-        <button class="btn btn-primary-green" background-color="00FF00" onclick="setColorAndUri('/GREEN')">Set to GREEN</button>
-        <button class="btn btn-primary-blue" background-color="0000FF" onclick="setColorAndUri('/BLUE')">Set to BLUE</button>
-        <button class="btn btn-primary-white" background-color="FFFFFF" onclick="setColorAndUri('/WHITE')">Set to WHITE</button>
-        <button class="btn btn-primary-off" background-color="000000" onclick="setColorAndUri('/OFF')">Turn OFF</button>
-        <br><h2 style="color: white; font-size: 20px;"><br>Sequence mode:<br></h2><br>
-        <div>
-            <button class="btn-primary-seq" background-color="000000" onclick="setColorAndUri('/SEQ_1')">Sequence++</button>
-            <span id="counter">0</span>
-        </div>
-        <br><br>
-        <h3 id="current_color">Current Color in Decimal: <span id="color_display"></span>
-    </div>
-    <script>
-        let counterValue = 0;
-        function setColorAndUri(URI) {
-            window.location.href = URI;
-        }
-        function update(picker) {
-            var colorDisplay = document.getElementById('color_display');
-            colorDisplay.innerHTML = Math.round(picker.rgb[0]) + ', ' + Math.round(picker.rgb[1]) + ', ' + Math.round(picker.rgb[2]);
-            var xhr = new XMLHttpRequest();
-            xhr.open("GET", "/zmien_kol?r=" + Math.round(picker.rgb[0]) + "&r=" + Math.round(picker.rgb[0]) + "&g=" + Math.round(picker.rgb[1]) + "&b=" + Math.round(picker.rgb[2]), true);
-            xhr.onreadystatechange = function () {
-                if (xhr.readyState == 4 && xhr.status == 200) {
-                    console.log(xhr.responseText);
-                }
-            };
-            xhr.send();
-        }
-        function incrementCounter(){
-            counterValue++;
-            if (counterValue>3){
-                counterValue=1;
+    <head>
+        <meta charset="UTF-8"/>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" />
+        <title>RGB Driver</title>
+
+
+        <style>
+             body {
+                margin: 0;
+                padding: 0;
+                height: 100vh;
+                display: flex;
+                flex-direction: column;
             }
-            document.getElementById("counter").textContent=counterValue;
-        }
-        function zeroCounter(){
-            counterValue=0;
-            document.getElementById("counter").textContent=counterValue;
-        }
-        document.querySelector(".btn-primary-seq").addEventListener("click",incrementCounter);
-        document.querySelector(".btn-primary-red").addEventListener("click",zeroCounter);
-        document.querySelector(".btn-primary-green").addEventListener("click",zeroCounter);
-        document.querySelector(".btn-primary-blue").addEventListener("click",zeroCounter);
-        document.querySelector(".btn-primary-white").addEventListener("click",zeroCounter);
-        document.querySelector(".btn-primary-off").addEventListener("click",zeroCounter);
-    </script>
-</body>
+
+            #header {
+                background-color: #3a3a3a;
+                width: 100%;
+                height: 10%;
+                display: flex;
+                align-items: center;
+            }
+
+            #header_title {
+                margin-left: 5%;
+                font-family: Verdana, Geneva, Tahoma, sans-serif;
+                display: flex;
+                color: rgb(255, 75, 180);
+                font-size: 5vw;
+                text-shadow: 
+                    2px 2px 0 white, 
+                    -2px 2px 0 white, 
+                    2px -2px 0 white, 
+                    -2px -2px 0 white, 
+                    2px 0 0 white, 
+                    -2px 0 0 white, 
+                    0 2px 0 white, 
+                    0 -2px 0 white;
+            }
+
+            #container {
+                display: flex;
+                flex-grow: 1;
+                height: 80%;
+            }
+                #nav {
+                    background-color: #afafaf;
+                    width: 10%;
+                    height: 100%;
+                    box-shadow: 
+                        2px 2px 0 black, 
+                        -2px 2px 0 black, 
+                        2px -2px 0 black, 
+                        -2px -2px 0 black, 
+                        2px 0 0 black, 
+                        -2px 0 0 black, 
+                        0 2px 0 black, 
+                        0 -2px 0 black;
+                    display: flex;
+                    /* justify-content: center; */
+                    flex-direction: column;
+                    align-items: center;
+                }
+
+                    #nav_text {
+                        text-align: center;
+                        display: flex;
+                        font-size: 1vw;
+                        text-shadow: 
+                            1px 1px 0 white, 
+                            -1px 1px 0 white, 
+                            1px -1px 0 white, 
+                            -1px -1px 0 white, 
+                            1px 0 0 white, 
+                            -1px 0 0 white, 
+                            0 1px 0 white, 
+                            0 -1px 0 white;
+                    }
+
+                #content {
+                    background-color: #d4d4d4;
+                    width: 90%;
+                    height: 100%;
+                    box-shadow: 
+                        2px 2px 0 black, 
+                        -2px 2px 0 black, 
+                        2px -2px 0 black, 
+                        -2px -2px 0 black, 
+                        2px 0 0 black, 
+                        -2px 0 0 black, 
+                        0 2px 0 black, 
+                        0 -2px 0 black;
+                }
+
+
+        </style>
+    </head>
+    <body>
+        <div id="header">
+            <h1 id="header_title">RGB Driver</h1>
+        </div>
+        <div id="container">
+            <div id="nav">
+                <i class="fa fa-solid fa-inbox", style="font-size: 3vw; color: rgb(255, 75, 180); 
+                    text-shadow: 
+                        2px 2px 0 black, 
+                        -2px 2px 0 black, 
+                        2px -2px 0 black, 
+                        -2px -2px 0 black, 
+                        2px 0 0 black, 
+                        -2px 0 0 black, 
+                        0 2px 0 black, 
+                        0 -2px 0 black;
+                    display: flex;
+                    margin-top: 50px;", onclick="changePage('main')">
+                </i>
+                <h2 id="nav_text">
+                    HOME
+                </h2>
+
+                <i class="fa fa-solid fa-gear", style="font-size: 3vw; color: rgb(255, 75, 180); text-shadow: 2px 2px 0 black, 
+                    -2px 2px 0 black, 
+                    2px -2px 0 black, 
+                    -2px -2px 0 black, 
+                    2px 0 0 black, 
+                    -2px 0 0 black, 
+                    0 2px 0 black, 
+                    0 -2px 0 black;
+                    display: flex;
+                    margin-top: 50px;", onclick="changePage('config')">
+                </i>
+                <h2 id="nav_text">
+                    CONFIGURATION
+                </h2>
+                
+                <i class="fa fa-solid fa-lightbulb", style="font-size: 3vw; color: rgb(255, 75, 180); text-shadow: 2px 2px 0 black, 
+                    -2px 2px 0 black, 
+                    2px -2px 0 black, 
+                    -2px -2px 0 black, 
+                    2px 0 0 black, 
+                    -2px 0 0 black, 
+                    0 2px 0 black, 
+                    0 -2px 0 black; display: flex;
+                    margin-top: 50px;", onclick="changePage('control')">
+                </i>
+                <h2 id="nav_text">
+                    RGB<br>CONTROLLER
+                </h2>
+            </div>
+            <div id="content">
+                <table>
+                    <tr>
+                        <td><h3>WiFi name:</h3></td>
+                        <td style="padding-left: 50px;"><h3><span id="wifi_name">Loading...</span></h3></td>
+                    </tr>
+                    <tr>
+                        <td><h3>WiFi password:</h3></td>
+                        <td style="padding-left: 50px;"><h3><span id="wifi_password">Loading...</span></h3></td>
+                    </tr>
+                    <tr>
+                        <td><h3>IP address:</h3></td>
+                        <td style="padding-left: 50px;"><h3><span id="ip_addr">Loading...</span></h3></td>
+                    </tr>
+                    <tr>
+                        <td><h3>Subnet mask:</h3></td>
+                        <td style="padding-left: 50px;"><h3><span id="mask">Loading...</span></h3></td>
+                    </tr>
+                    <tr>
+                        <td><h3>Firmware version:</h3></td>
+                        <td style="padding-left: 50px;"><h3><span id="fw_v">Loading...</span></h3></td>
+                    </tr>
+                </table>
+            </div>
+            <script>
+                function changePage(page){
+                    switch(page){
+                        case 'main':
+                            window.location.href = '/get?page=main';
+                            break
+                        case 'config':
+                            window.location.href = '/get?page=config';
+                            break
+                        case 'control':
+                            window.location.href = '/get?page=control';
+                            break
+                    }
+                }
+
+                function infoFetch(){
+                    fetch('/info')
+                        .then(response=>response.json())
+                        .then(data=>{
+                            document.getElementById('wifi_name').textContent=data.wifiName;
+                            document.getElementById('wifi_password').textContent=data.wifiPass;
+                            document.getElementById('ip_addr').textContent=data.ipAddr;
+                            document.getElementById('mask').textContent=data.subnetMask;
+                            document.getElementById('fw_v').textContent=data.fwV;
+                        })
+                }
+                window.onload = infoFetch;
+            </script>
+        </div>
+    </body>
 </html>
