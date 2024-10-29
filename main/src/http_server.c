@@ -7,6 +7,8 @@
 #define WIFI_FAIL_BIT               BIT1
 
 /* User configuration */
+#define STATIC_IP_ENABLED           true
+static const uint8_t staticIP[4]    ={192, 168, 0, 220};
 #define CONFIG_ESP_WIFI_SSID        "UPC6591066"        
 #define CONFIG_ESP_WIFI_PASSWORD    "uEuyknbts4rt"      
 #define CONFIG_ESP_MAXIMUM_RETRY    5                   
@@ -15,15 +17,17 @@
 #define TAG_HTTP_SERVER             1
 static const char *TAG[2] = {"WIFI_MODULE", "HTTP_SERVER"};
 
-#define MAX_PAGE_SIZE               8192
+#define MAX_PAGE_SIZE               16384
 #define READ_SIZE                   255
 
-#define HTTP_PAGE_PARAMETER_NAME        "page"
+#define HTTP_PAGE_PARAMETER_NAME            "page"
 
-#define HTTP_PAGE_PARAMETER_MAIN_NAME   "main"
-#define HTTP_PAGE_NAME_MAIN             "main_page.html"
-#define HTTP_PAGE_PARAMETER_CONFIG_NAME "config"
-#define HTTP_PAGE_NAME_CONFIG           "config_page.html"
+#define HTTP_PAGE_PARAMETER_MAIN_NAME       "main"
+#define HTTP_PAGE_NAME_MAIN                 "main_page.html"
+#define HTTP_PAGE_PARAMETER_CONFIG_NAME     "config"
+#define HTTP_PAGE_NAME_CONFIG               "config_page.html"
+#define HTTP_PAGE_PARAMETER_CONTROL_NAME    "control"
+#define HTTP_PAGE_NAME_CONTROL              "control_page.html"
 
 static EventGroupHandle_t wifiEventGroup;
 static int retNum = 0;
@@ -83,7 +87,7 @@ void http_server_main(void){
     }
 }
 
-/* WIFI SETUP */
+/* WiFi status handler */
 static void Wifi_EventHandler(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data) {
 
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
@@ -109,16 +113,23 @@ static void Wifi_EventHandler(void *arg, esp_event_base_t event_base, int32_t ev
     }
 }
 
-
+/* Setting up WiFi connection*/
 esp_err_t Wifi_SetupConnection(void) {
 
     // TODO: change esp to be both station and router : 192.168.0.10 !
     wifiEventGroup = xEventGroupCreate();
-
     ESP_ERROR_CHECK(esp_netif_init());
+    
     ESP_ERROR_CHECK(esp_event_loop_create_default());
     esp_netif_create_default_wifi_sta();
-
+#ifdef STATIC_IP_ENABLED
+    esp_netif_ip_info_t ip_info;
+    IP4_ADDR(&ip_info.ip, staticIP[0], staticIP[1], staticIP[2], staticIP[3]);
+    IP4_ADDR(&ip_info.netmask, 255, 255, 255, 0);
+    esp_netif_t *netif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
+    esp_netif_dhcpc_stop(netif); // Wyłącz DHCP Client
+    esp_netif_set_ip_info(netif, &ip_info);
+#endif
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
 
@@ -171,7 +182,7 @@ esp_err_t Wifi_SetupConnection(void) {
     return (bits & WIFI_CONNECTED_BIT) ? ESP_OK : ESP_FAIL;
 }
 
-/* Default page send after typing ip in web browser */
+/* Get .html default page */
 esp_err_t getStart_EventHandler(httpd_req_t *req) {
     char*       pageText;
     uint8_t     fileID;
@@ -214,7 +225,7 @@ esp_err_t getStart_EventHandler(httpd_req_t *req) {
     return ESP_OK;
 }
 
-/* Pages switch based on querry */
+/* Get .html pages */
 esp_err_t  getPage_EventHandler(httpd_req_t *req) {
     char*       buffer;
     char*       pageText;
@@ -306,6 +317,45 @@ esp_err_t  getPage_EventHandler(httpd_req_t *req) {
                         ESP_LOGE(TAG[1], "All file handlers are busy!");
                     }
                 }
+
+                /* SENDING CONTROL PAGE */
+                else if (!strcmp(key, HTTP_PAGE_PARAMETER_CONTROL_NAME)) {
+                    if (fs_findID(&fileID) == ESP_OK) { 
+                        pageText = malloc(MAX_PAGE_SIZE);
+                        if (pageText == NULL){
+                            ESP_LOGE(TAG[1],"Not enough memory, malloc failed!");
+                        }
+                        else {
+                            if (ESP_OK == fs_openFile(fileID, HTTP_PAGE_NAME_CONTROL)) {
+                                do {
+                                    readBytes = fs_readFile(fileID, HTTP_PAGE_NAME_CONTROL, pageText + totalReadBytes, totalReadBytes);
+                                    totalReadBytes += readBytes;
+                                } while (readBytes == READ_SIZE);
+                                if (totalReadBytes > 0) {
+                                    ESP_LOGI(TAG[1], "File to send: \nFile name: %s \nFile size: %d bytes", HTTP_PAGE_NAME_CONTROL, totalReadBytes);
+                                    if (httpd_resp_send(req, pageText, totalReadBytes) == ESP_OK) {
+                                        ESP_LOGI(TAG[1], "%s page has been sent", HTTP_PAGE_NAME_CONTROL);
+                                    }
+                                    else {
+                                        ESP_LOGE(TAG[1], "%s page sending error!", HTTP_PAGE_NAME_CONTROL);
+                                    }
+                                }
+                                else {
+                                    ESP_LOGE(TAG[1], "readed bytes from file: %s is equal to: %d!", HTTP_PAGE_NAME_CONTROL, totalReadBytes);
+                                }
+                            fs_closeFile(fileID);
+                            }
+                            else {
+                                ESP_LOGE(TAG[1], "File opening error: %s", HTTP_PAGE_NAME_CONTROL);
+                            }
+                        }
+                        free(pageText);
+                    }
+                    else {
+                        ESP_LOGE(TAG[1], "All file handlers are busy!");
+                    }
+                }
+
                 else {
                     ESP_LOGE(TAG[1], "Invalid value of querry parameter.");
                 }
@@ -321,6 +371,7 @@ esp_err_t  getPage_EventHandler(httpd_req_t *req) {
     return ESP_OK;
 }
 
+/* Get information about ESP32 */
 esp_err_t getInfo_EventHandler(httpd_req_t *req) {
     const char* json_response[256]; 
     sprintf(json_response,
@@ -335,13 +386,12 @@ esp_err_t getInfo_EventHandler(httpd_req_t *req) {
     return ESP_OK;
 }
 
+/* TODO: handler of RGB control */
 esp_err_t  post_EventHandler(httpd_req_t *req) {
     return 1;
 }
 
-
-
-/* GET HANDLERS */
+/* Get config */
 httpd_uri_t get_page = {
     .uri = "/get",
     .method = HTTP_GET,
@@ -360,19 +410,16 @@ httpd_uri_t get_info = {
     .handler = getInfo_EventHandler,
     .user_ctx = NULL };
 
-
-
-/* POST HANDLERS */
+/* Post config */
 httpd_uri_t uri_post = {
     .uri = "/post",
     .method = HTTP_GET,
     .handler = post_EventHandler,
     .user_ctx = NULL };
 
-
+/* Set up http server */
 httpd_handle_t setup_server(void)
-{
-    
+{   
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     httpd_handle_t server = NULL;
 

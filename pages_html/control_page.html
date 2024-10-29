@@ -6,16 +6,14 @@
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" />
         <title>RGB Driver</title>
 
-
         <style>
-             body {
+            body {
                 margin: 0;
                 padding: 0;
                 height: 100vh;
                 display: flex;
                 flex-direction: column;
             }
-
             #header {
                 background-color: #3a3a3a;
                 width: 100%;
@@ -23,11 +21,9 @@
                 display: flex;
                 align-items: center;
             }
-
             #header_title {
                 margin-left: 5%;
                 font-family: Verdana, Geneva, Tahoma, sans-serif;
-                display: flex;
                 color: rgb(255, 75, 180);
                 font-size: 5vw;
                 text-shadow: 
@@ -40,61 +36,84 @@
                     0 2px 0 white, 
                     0 -2px 0 white;
             }
-
             #container {
                 display: flex;
                 flex-grow: 1;
                 height: 80%;
             }
-                #nav {
-                    background-color: #afafaf;
-                    width: 10%;
-                    height: 100%;
-                    box-shadow: 
-                        2px 2px 0 black, 
-                        -2px 2px 0 black, 
-                        2px -2px 0 black, 
-                        -2px -2px 0 black, 
-                        2px 0 0 black, 
-                        -2px 0 0 black, 
-                        0 2px 0 black, 
-                        0 -2px 0 black;
-                    display: flex;
-                    /* justify-content: center; */
-                    flex-direction: column;
-                    align-items: center;
-                }
-
-                    #nav_text {
-                        text-align: center;
-                        display: flex;
-                        font-size: 1vw;
-                        text-shadow: 
-                            1px 1px 0 white, 
-                            -1px 1px 0 white, 
-                            1px -1px 0 white, 
-                            -1px -1px 0 white, 
-                            1px 0 0 white, 
-                            -1px 0 0 white, 
-                            0 1px 0 white, 
-                            0 -1px 0 white;
-                    }
-
-                #content {
-                    background-color: #d4d4d4;
-                    width: 90%;
-                    height: 100%;
-                    box-shadow: 
-                        2px 2px 0 black, 
-                        -2px 2px 0 black, 
-                        2px -2px 0 black, 
-                        -2px -2px 0 black, 
-                        2px 0 0 black, 
-                        -2px 0 0 black, 
-                        0 2px 0 black, 
-                        0 -2px 0 black;
-                }
-
+            #nav {
+                background-color: #afafaf;
+                width: 10%;
+                height: 100%;
+                box-shadow:
+                    2px 2px 0 black, 
+                    -2px 2px 0 black, 
+                    2px -2px 0 black, 
+                    -2px -2px 0 black, 
+                    2px 0 0 black, 
+                    -2px 0 0 black, 
+                    0 2px 0 black, 
+                    0 -2px 0 black;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+            #nav_text {
+                text-align: center;
+                font-size: 1vw;
+                text-shadow: 
+                    1px 1px 0 white, 
+                    -1px 1px 0 white, 
+                    1px -1px 0 white, 
+                    -1px -1px 0 white, 
+                    1px 0 0 white, 
+                    -1px 0 0 white, 
+                    0 1px 0 white, 
+                    0 -1px 0 white;
+            }
+            #content {
+                background-color: #d4d4d4;
+                width: 90%;
+                height: 100%;
+                box-shadow: 
+                    2px 2px 0 black, 
+                    -2px 2px 0 black, 
+                    2px -2px 0 black, 
+                    -2px -2px 0 black, 
+                    2px 0 0 black, 
+                    -2px 0 0 black, 
+                    0 2px 0 black, 
+                    0 -2px 0 black;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                overflow: auto;
+            }
+            .color-picker-container {
+                display: grid;
+                width: 100%;
+                height: 100%;
+                grid-template-columns: repeat(16, 1fr);
+                grid-gap: 2px;
+                padding: 10px;
+                display: grid;
+                grid-template-columns: repeat(16, 1fr); /* Dopasowanie do szerokości */
+                grid-gap: 5px;
+                margin-left: 10px; /* Margines po lewej */
+                margin-right: 10px; /* Margines po prawej */
+                width: calc(100% - 20px); /* Dopasowanie szerokości uwzględniające margines */
+            }
+            .color-box {
+                width: 100%;
+                height: 100%;
+                cursor: pointer;
+                border-radius: 4px;
+                transition: transform 0.2s ease;
+            }
+            .color-box:hover {
+                transform: scale(1.1);
+            }
 
         </style>
     </head>
@@ -151,57 +170,73 @@
                 </h2>
             </div>
             <div id="content">
-                <table>
-                    <tr>
-                        <td><h3>WiFi name:</h3></td>
-                        <td style="padding-left: 50px;"><h3><span id="wifi_name">Loading...</span></h3></td>
-                    </tr>
-                    <tr>
-                        <td><h3>WiFi password:</h3></td>
-                        <td style="padding-left: 50px;"><h3><span id="wifi_password">Loading...</span></h3></td>
-                    </tr>
-                    <tr>
-                        <td><h3>IP address:</h3></td>
-                        <td style="padding-left: 50px;"><h3><span id="ip_addr">Loading...</span></h3></td>
-                    </tr>
-                    <tr>
-                        <td><h3>Subnet mask:</h3></td>
-                        <td style="padding-left: 50px;"><h3><span id="mask">Loading...</span></h3></td>
-                    </tr>
-                    <tr>
-                        <td><h3>Firmware version:</h3></td>
-                        <td style="padding-left: 50px;"><h3><span id="fw_v">Loading...</span></h3></td>
-                    </tr>
-                </table>
+                <div class="color-picker-container" id="colorGrid"></div>
+                <button>BUTTON1</button>
+                <button>BUTTON1</button>
+                <button>BUTTON1</button>
+                <button>BUTTON1</button>
+                <button>BUTTON1</button>
             </div>
-            <script>
-                function changePage(page){
-                    switch(page){
-                        case 'main':
-                            window.location.href = '/get?page=main';
-                            break
-                        case 'config':
-                            window.location.href = '/get?page=config';
-                            break
-                        case 'control':
-                            window.location.href = '/get?page=control';
-                            break
-                    }
-                }
-
-                function infoFetch(){
-                    fetch('/info')
-                        .then(response=>response.json())
-                        .then(data=>{
-                            document.getElementById('wifi_name').textContent=data.wifiName;
-                            document.getElementById('wifi_password').textContent=data.wifiPass;
-                            document.getElementById('ip_addr').textContent=data.ipAddr;
-                            document.getElementById('mask').textContent=data.subnetMask;
-                            document.getElementById('fw_v').textContent=data.fwV;
-                        })
-                }
-                window.onload = infoFetch;
-            </script>
         </div>
+
+        <script>
+            function changePage(page) {
+                switch(page) {
+                    case 'main': window.location.href = '/get?page=main'; break;
+                    case 'config': window.location.href = '/get?page=config'; break;
+                    case 'control': window.location.href = '/get?page=control'; break;
+                }
+            }
+
+            function infoFetch() {
+                fetch('/info')
+                    .then(response => response.json())
+                    .then(data => {
+                        document.getElementById('wifi_name').textContent = data.wifiName;
+                        document.getElementById('wifi_password').textContent = data.wifiPass;
+                        document.getElementById('ip_addr').textContent = data.ipAddr;
+                        document.getElementById('mask').textContent = data.subnetMask;
+                        document.getElementById('fw_v').textContent = data.fwV;
+                    });
+            }
+
+            window.onload = () => {
+                infoFetch();
+                generateColorGrid();
+            };
+
+            const colors = Array.from({ length: 256 }, (_, i) => {
+                const x = i % 16;
+                const y = Math.floor(i / 16);
+                const red = Math.round(255 * (x / 15));
+                const green = Math.round(255 * (1 - x / 15));
+                const blue = Math.round(255 * (y / 15));
+                return `#${red.toString(16).padStart(2, '0')}${green.toString(16).padStart(2, '0')}${blue.toString(16).padStart(2, '0')}`;
+            });
+
+            function generateColorGrid() {
+                const colorGrid = document.getElementById('colorGrid');
+                
+                colors.forEach(color => {
+                    const colorBox = document.createElement('div');
+                    colorBox.className = 'color-box';
+                    colorBox.style.backgroundColor = color;
+                    colorBox.onclick = () => sendColor(color);
+                    colorGrid.appendChild(colorBox);
+                });
+            }
+
+            function sendColor(color) {
+                const red = parseInt(color.slice(1, 3), 16);
+                const green = parseInt(color.slice(3, 5), 16);
+                const blue = parseInt(color.slice(5, 7), 16);
+                fetch('/RGB', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ red, green, blue })
+                })
+
+            }
+        </script>
     </body>
 </html>
