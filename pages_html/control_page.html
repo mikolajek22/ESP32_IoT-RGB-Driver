@@ -233,7 +233,13 @@
                 fetch('/RGB', {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ red, green, blue })
+                    body: JSON.stringify({
+                        rgbValues:{
+                            red,
+                            green,
+                            blue 
+                        }
+                    })
                 })
 
             }

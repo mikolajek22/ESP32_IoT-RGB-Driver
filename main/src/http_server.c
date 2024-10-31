@@ -1,6 +1,7 @@
 #include "http_server.h"
 #include "fs.h"
 #include "esp_idf_version.h"
+#include "cJSON.h"
 
 /* Flags */
 #define WIFI_CONNECTED_BIT          BIT0
@@ -37,6 +38,8 @@ esp_err_t Wifi_SetupConnection(void);
 
 httpd_handle_t setup_server(void);
 static esp_netif_ip_info_t connectionInfo;
+
+extern void actualizeValue(uint8_t red, uint8_t green, uint8_t blue);
 
 void http_server_main(void){
     const uint16_t maxTimeWait  = 30000;
@@ -387,8 +390,23 @@ esp_err_t getInfo_EventHandler(httpd_req_t *req) {
 }
 
 /* TODO: handler of RGB control */
-esp_err_t  post_EventHandler(httpd_req_t *req) {
-    return 1;
+esp_err_t  postRGB_EventHandler(httpd_req_t *req) {
+    const char* postBuffer[256];
+    size_t      contentLen = req->content_len;
+    uint8_t     red = 0;
+    uint8_t     green = 0;
+    uint8_t     blue = 0;
+
+    if (httpd_req_recv(req, postBuffer, contentLen) > 0) {
+        cJSON *root = cJSON_Parse(postBuffer);
+        cJSON *rgbValues = cJSON_GetObjectItem(root, "rgbValues");
+        red = cJSON_GetObjectItem(rgbValues, "red")->valueint;
+        green = cJSON_GetObjectItem(rgbValues, "green")->valueint;
+        blue = cJSON_GetObjectItem(rgbValues, "blue")->valueint;
+        actualizeValue(red, green, blue);
+    }
+    
+    return ESP_OK;
 }
 
 /* Get config */
@@ -412,9 +430,9 @@ httpd_uri_t get_info = {
 
 /* Post config */
 httpd_uri_t uri_post = {
-    .uri = "/post",
-    .method = HTTP_GET,
-    .handler = post_EventHandler,
+    .uri = "/RGB",
+    .method = HTTP_PUT,
+    .handler = postRGB_EventHandler,
     .user_ctx = NULL };
 
 /* Set up http server */
