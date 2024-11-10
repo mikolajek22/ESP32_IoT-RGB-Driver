@@ -9,9 +9,11 @@
 
 /* User configuration */
 #define STATIC_IP_ENABLED           true
-static const uint8_t staticIP[4]    ={192, 168, 0, 220};
-#define CONFIG_ESP_WIFI_SSID        "UPC6591066"        
-#define CONFIG_ESP_WIFI_PASSWORD    "uEuyknbts4rt"      
+
+// #define CONFIG_ESP_WIFI_SSID        "UPC6591066"        
+// #define CONFIG_ESP_WIFI_PASSWORD    "uEuyknbts4rt"    
+#define CONFIG_ESP_WIFI_SSID        "HiisiHomesB100"        
+#define CONFIG_ESP_WIFI_PASSWORD    "painuhiiteen"   
 #define CONFIG_ESP_MAXIMUM_RETRY    5                   
 
 #define TAG_WIFI_MODULE             0
@@ -30,6 +32,15 @@ static const char *TAG[2] = {"WIFI_MODULE", "HTTP_SERVER"};
 #define HTTP_PAGE_PARAMETER_CONTROL_NAME    "control"
 #define HTTP_PAGE_NAME_CONTROL              "control_page.html"
 
+#define SETTING_FILE_NAME                   "settings.json"
+static const uint8_t defaultStaticIP[4]              ={192, 168, 1, 10};
+static const uint8_t defaultStaticMask[4]            ={255, 255, 255, 0};
+static const uint8_t defaultStaticGateway[4]         ={192, 168, 1, 10};
+
+static uint8_t staticIP[4]              ={192, 168, 1, 10};
+static uint8_t staticMask[4]            ={255, 255, 255, 0};
+static uint8_t staticGateway[4]         ={192, 168, 1, 10};
+
 static EventGroupHandle_t wifiEventGroup;
 static int retNum = 0;
 
@@ -40,6 +51,28 @@ httpd_handle_t setup_server(void);
 static esp_netif_ip_info_t connectionInfo;
 
 extern void actualizeValue(uint8_t red, uint8_t green, uint8_t blue);
+
+#define NOT_NUMBER      -1
+#define INVALID_VALUE   -10
+int paresAddrStr2Int(uint8_t* addr, const char* buffer){
+    uint8_t offset = 0;
+    char temp[4] = {0};
+    while (buffer[offset] != '\0' && buffer[offset] != '.') {
+        if (isdigit((unsigned char)buffer[offset])){
+            temp[offset] = buffer[offset];
+            offset++;
+        }
+        else {
+            return NOT_NUMBER;
+        }  
+    }
+    int value = atoi(temp);
+    if (value > 255 || value < 0){
+        return INVALID_VALUE;
+    }
+    *addr = (uint8_t*)value;
+    return offset + 1;
+}
 
 void http_server_main(void){
     const uint16_t maxTimeWait  = 30000;
@@ -119,18 +152,95 @@ static void Wifi_EventHandler(void *arg, esp_event_base_t event_base, int32_t ev
 /* Setting up WiFi connection*/
 esp_err_t Wifi_SetupConnection(void) {
 
-    // TODO: change esp to be both station and router : 192.168.0.10 !
+    // TODO: change esp to be both station and router : 192.168.0.10 ! STA OR AP
     wifiEventGroup = xEventGroupCreate();
     ESP_ERROR_CHECK(esp_netif_init());
     
     ESP_ERROR_CHECK(esp_event_loop_create_default());
     esp_netif_create_default_wifi_sta();
 #ifdef STATIC_IP_ENABLED
+    /* read from config file*/
+    uint8_t     fileID;
+    size_t      readBytes;
+    uint16_t    totalReadBytes = 0;
+    char*       buffer;
+
+    cJSON *root;
+    cJSON *settings;
+    cJSON *network;
+
+    char* ipAddr;
+    char* netmask;
+    char* defaultGw;
+    if (ESP_OK == fs_findID(&fileID)) {
+        if (ESP_OK == fs_openFile(fileID, SETTING_FILE_NAME)) {
+            buffer = malloc(1024);
+            do {
+                readBytes = fs_readFile(fileID, SETTING_FILE_NAME, buffer + totalReadBytes, totalReadBytes);
+                totalReadBytes += readBytes;
+            } while (readBytes == READ_SIZE);
+            if (ESP_OK == fs_closeFile(fileID)) {
+                root = cJSON_Parse(buffer);
+                settings = cJSON_GetObjectItem(root, "settings");
+                network = cJSON_GetObjectItem(settings, "network");
+                ipAddr = cJSON_GetObjectItem(network, "ipAddress")->valuestring;
+                netmask = cJSON_GetObjectItem(network, "netmask")->valuestring;
+                defaultGw = cJSON_GetObjectItem(network, "defaultGateway")->valuestring;
+                // 1. Parsing IP.
+                int offset=0;
+                for (uint8_t i = 0; i < 4; i++) {
+                    offset =+ paresAddrStr2Int(&staticIP[i], ipAddr + offset);
+                    if (offset < 0) {
+                        ESP_LOGE(TAG[TAG_WIFI_MODULE], "data from file corrupted! Setting default address: 192.168.0.10");
+                        for (uint8_t i = 0; i < 4; i++){
+                            staticIP[i] = defaultStaticIP[i];
+                        }
+                        break;
+                    }
+                }
+                // 2. Parsing netmask.
+                offset=0;
+                for (uint8_t i = 0; i < 4; i++) {
+                    offset += paresAddrStr2Int(&staticMask[i], netmask + offset);
+                    if (offset < 0) {
+                        ESP_LOGE(TAG[TAG_WIFI_MODULE], "data from file corrupted! Setting default mask: 255.255.255.0");
+                        for (uint8_t i = 0; i < 4; i++){
+                            staticMask[i] = defaultStaticMask[i];
+                        }
+                        break;
+                    }
+                }
+                // 3. Parsing default gateway.
+                offset=0;
+                for (uint8_t i = 0; i < 4; i++) {
+                    offset += paresAddrStr2Int(&staticGateway[i], defaultGw + offset);
+                    if (offset < 0) {
+                        ESP_LOGE(TAG[TAG_WIFI_MODULE], "data from file corrupted! Setting default gateway: 192.168.0.10");
+                        for (uint8_t i = 0; i < 4; i++){
+                            staticGateway[i] = defaultStaticGateway[i];
+                        }
+                        break;
+                    }
+                }
+            }
+            else {
+                ESP_LOGE(TAG[TAG_WIFI_MODULE], "File closing error.");
+            }
+        free(buffer);
+        }
+        else {
+            ESP_LOGE(TAG[TAG_WIFI_MODULE], "CFG file opening error");
+        }
+    }
+    else {
+        ESP_LOGE(TAG[TAG_WIFI_MODULE], "no free file handlers");
+    }
     esp_netif_ip_info_t ip_info;
     IP4_ADDR(&ip_info.ip, staticIP[0], staticIP[1], staticIP[2], staticIP[3]);
-    IP4_ADDR(&ip_info.netmask, 255, 255, 255, 0);
+    IP4_ADDR(&ip_info.netmask, staticMask[0], staticMask[1], staticMask[2], staticMask[3]);
+    IP4_ADDR(&ip_info.gw, staticGateway[0], staticGateway[1], staticGateway[2], staticGateway[3]);
     esp_netif_t *netif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
-    esp_netif_dhcpc_stop(netif); // Wyłącz DHCP Client
+    esp_netif_dhcpc_stop(netif);
     esp_netif_set_ip_info(netif, &ip_info);
 #endif
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
@@ -378,11 +488,12 @@ esp_err_t  getPage_EventHandler(httpd_req_t *req) {
 esp_err_t getInfo_EventHandler(httpd_req_t *req) {
     const char* json_response[256]; 
     sprintf(json_response,
-        "{\"wifiName\":\"%s\",\"wifiPass\":\"%s\",\"ipAddr\":\""IPSTR"\",\"subnetMask\":\""IPSTR"\",\"fwV\":\"%d.%d.%d\"}", 
+        "{\"wifiName\":\"%s\",\"wifiPass\":\"%s\",\"ipAddr\":\""IPSTR"\",\"subnetMask\":\""IPSTR"\",\"gw\":\""IPSTR"\",\"fwV\":\"%d.%d.%d\"}", 
         CONFIG_ESP_WIFI_SSID,
         CONFIG_ESP_WIFI_PASSWORD,
         IP2STR(&connectionInfo.ip),
         IP2STR(&connectionInfo.netmask),
+        IP2STR(&connectionInfo.gw),
         ESP_IDF_VERSION_MAJOR, ESP_IDF_VERSION_MINOR, ESP_IDF_VERSION_PATCH);
     httpd_resp_set_type(req, "application/json");
     httpd_resp_send(req, json_response, strlen(json_response));
@@ -403,7 +514,10 @@ esp_err_t  postRGB_EventHandler(httpd_req_t *req) {
         red = cJSON_GetObjectItem(rgbValues, "red")->valueint;
         green = cJSON_GetObjectItem(rgbValues, "green")->valueint;
         blue = cJSON_GetObjectItem(rgbValues, "blue")->valueint;
-        actualizeValue(red, green, blue);
+        if (red!=0 && green!=0 && blue!=0){
+            httpd_resp_send(req, "Values actualized", sizeof("Values actualized"));
+            actualizeValue(red, green, blue);
+        }
     }
     
     return ESP_OK;

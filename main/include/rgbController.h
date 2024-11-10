@@ -1,7 +1,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <thread>
-
+#include "driver/ledc.h"
 
 #define MANUAL_MODE 0
 #define SEQUENCE_MODE 1
@@ -11,6 +11,7 @@ extern "C"{
     /* this functions are called from http_server.c! */
     void actualizeValue(uint8_t red, uint8_t green, uint8_t blue);
     void actualizeMode(uint8_t redMode, uint8_t greenMode, uint8_t blueMode);
+    void rgbController_main(void *pvParameters);
 }
 
 class Color {
@@ -37,4 +38,3 @@ class Color {
 };
 
 void sequenceMode();
-void rgbController_main();

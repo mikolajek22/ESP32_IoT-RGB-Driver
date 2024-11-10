@@ -161,12 +161,16 @@
                         <td style="padding-left: 50px;"><h3><span id="wifi_password">Loading...</span></h3></td>
                     </tr>
                     <tr>
-                        <td><h3>IP address:</h3></td>
+                        <td><h3>IP Address:</h3></td>
                         <td style="padding-left: 50px;"><h3><span id="ip_addr">Loading...</span></h3></td>
                     </tr>
                     <tr>
-                        <td><h3>Subnet mask:</h3></td>
+                        <td><h3>Subnet Mask:</h3></td>
                         <td style="padding-left: 50px;"><h3><span id="mask">Loading...</span></h3></td>
+                    </tr>
+                    <tr>
+                        <td><h3>Default Gateway:</h3></td>
+                        <td style="padding-left: 50px;"><h3><span id="gw">Loading...</span></h3></td>
                     </tr>
                     <tr>
                         <td><h3>Firmware version:</h3></td>
@@ -197,6 +201,7 @@
                             document.getElementById('wifi_password').textContent=data.wifiPass;
                             document.getElementById('ip_addr').textContent=data.ipAddr;
                             document.getElementById('mask').textContent=data.subnetMask;
+                            document.getElementById('gw').textContent=data.gw;
                             document.getElementById('fw_v').textContent=data.fwV;
                         })
                 }
