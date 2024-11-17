@@ -86,34 +86,51 @@
                     0 -2px 0 black;
                 display: flex;
                 flex-direction: column;
-                align-items: center;
-                justify-content: center;
+                /* align-items: center; */
+                /* justify-content: center; */
                 overflow: auto;
             }
             .color-picker-container {
-                display: grid;
-                width: 100%;
-                height: 100%;
-                grid-template-columns: repeat(16, 1fr);
-                grid-gap: 2px;
-                padding: 10px;
-                display: grid;
-                grid-template-columns: repeat(16, 1fr); /* Dopasowanie do szerokości */
-                grid-gap: 5px;
-                margin-left: 10px; /* Margines po lewej */
-                margin-right: 10px; /* Margines po prawej */
-                width: calc(100% - 20px); /* Dopasowanie szerokości uwzględniające margines */
+            display: flex;
+            align-items: center;
             }
-            .color-box {
-                width: 100%;
-                height: 100%;
+            input[type="color"] {
+                border: none;
+                width: 80vh; /* Zwiększ szerokość */
+                height: 20vh; /* Zwiększ wysokość */
                 cursor: pointer;
-                border-radius: 4px;
-                transition: transform 0.2s ease;
             }
-            .color-box:hover {
-                transform: scale(1.1);
+            .button-row {
+            margin-bottom: 20px;
             }
+            .button-row button {
+                margin-left: 10px;
+                box-shadow:
+                        2px 2px 0 black, 
+                        -2px 2px 0 black, 
+                        2px -2px 0 black, 
+                        -2px -2px 0 black, 
+                        2px 0 0 black, 
+                        -2px 0 0 black, 
+                        0 2px 0 black, 
+                        0 -2px 0 black;
+                width: 200px;
+                height: 100px;
+            }
+            .text-row {
+                display: flex;
+                gap: 10px; /* Odstęp między elementami */;
+            }
+            .text-row h3 {
+                margin-left: 10px;
+                width: 100px;
+                height: 10px;
+            }
+            input {
+            width: 50px;
+            padding: 5px;
+            margin-left: 10px;
+        }
 
         </style>
     </head>
@@ -170,12 +187,56 @@
                 </h2>
             </div>
             <div id="content">
-                <div class="color-picker-container" id="colorGrid"></div>
-                <button>BUTTON1</button>
-                <button>BUTTON1</button>
-                <button>BUTTON1</button>
-                <button>BUTTON1</button>
-                <button>BUTTON1</button>
+                <h2 style="margin-left: 10px;">CHOOSE COLOR:</h2> 
+                <div class="color-picker-container">
+                    <input type="color" id="colorPicker" value="#000000" onchange="sendColor(this.value)">
+
+                </div>
+                <h2 style="margin-left: 10px;">BASIC COLORS:</h2> 
+                <div class="button-row">
+                    <button id="off" style="background-color: #000000; color: #FFFFFF; font-size: 26px;" onclick="sendColor('#000000')">OFF</button>
+                    <button id="white" style="background-color: #FFFFFF; font-size: 26px;" onclick="sendColor('#FFFFFF')">WHITE</button>
+                </div>
+                <div class="button-row">
+                    <button id="red" style="background-color: #FF0000; font-size: 26px;" onclick="sendColor('#FF0000')">RED</button>
+                    <button id="green" style="background-color: #00FF00; font-size: 26px;" onclick="sendColor('#00FF00')">GREEN</button>
+                    <button id="blue" style="background-color: #0000FF; font-size: 26px;" onclick="sendColor('#0000FF')">BLUE</button>
+                </div>
+                <h2 style="margin-left: 10px;">SEQUENCES:</h2>
+                <div class="button-row">
+                    <button id="seq_1" style="background-color: #00ffd5; font-size: 26px;" onclick="sendSeq('1')">SEQUENCE 1</button>
+                    <button id="seq_2" style="background-color: #00ffd5; font-size: 26px;" onclick="sendSeq('2')">SEQUENCE 2</button>
+                    <button id="seq_3" style="background-color: #00ffd5; font-size: 26px;" onclick="sendSeq('3')">SEQUENCE 3</button>
+                    <button id="seq_4" style="background-color: #00ffd5; font-size: 26px;" onclick="sendSeq('4')">SEQUENCE 3</button>
+                </div>
+                <h2 style="margin-left: 10px;">ORIGINAL SEQUENCES:</h2>
+                <div class="text-row">
+                    <h3 style="margin-left: 10px;">FROM</h3>
+                    <h3 style="margin-left: 10px;">THROUGH</h3>
+                    <h3 style="margin-left: 20px;">TO</h3>
+                </div>
+                <div class="text-row">
+                    <input id="R1" type="number" min="0" max="255" placeholder="R" >
+                    <input id="R2" type="number" min="0" max="255" placeholder="R" style="margin-left: 50px;">
+                    <input id="R3" type="number" min="0" max="255" placeholder="R" style="margin-left: 55px;">
+                </div>
+                <div class="text-row">
+                    <input id="G1" type="number" min="0" max="255" placeholder="G" >
+                    <input id="G2" type="number" min="0" max="255" placeholder="G" style="margin-left: 50px;">
+                    <input id="G3" type="number" min="0" max="255" placeholder="G" style="margin-left: 55px;">
+                </div>
+                <div class="text-row">
+                    <input id="B1" type="number" min="0" max="255" placeholder="B" >
+                    <input id="B2" type="number" min="0" max="255" placeholder="B" style="margin-left: 50px;">
+                    <input id="B3" type="number" min="0" max="255" placeholder="B" style="margin-left: 55px;">
+                </div>
+                <h3 style="margin-left: 10px;">PERIOD TIME</h3>
+                <div style="display: inline; margin-left: 10px;">
+                    time<input id="time" type="number" min="0" max="255" placeholder="ms" style="margin-right: 10px;">ms
+                    <button id="apply" style="background-color: #00ffd5; font-size: 26px; height: 40px; width: 200px; margin-left: 20px;" onclick="sendOriginal()">APPLY</button>
+                </div>
+                <br>
+                
             </div>
         </div>
 
@@ -188,43 +249,8 @@
                 }
             }
 
-            function infoFetch() {
-                fetch('/info')
-                    .then(response => response.json())
-                    .then(data => {
-                        document.getElementById('wifi_name').textContent = data.wifiName;
-                        document.getElementById('wifi_password').textContent = data.wifiPass;
-                        document.getElementById('ip_addr').textContent = data.ipAddr;
-                        document.getElementById('mask').textContent = data.subnetMask;
-                        document.getElementById('fw_v').textContent = data.fwV;
-                    });
-            }
-
             window.onload = () => {
-                infoFetch();
-                generateColorGrid();
             };
-
-            const colors = Array.from({ length: 256 }, (_, i) => {
-                const x = i % 16;
-                const y = Math.floor(i / 16);
-                const red = Math.round(255 * (x / 15));
-                const green = Math.round(255 * (1 - x / 15));
-                const blue = Math.round(255 * (y / 15));
-                return `#${red.toString(16).padStart(2, '0')}${green.toString(16).padStart(2, '0')}${blue.toString(16).padStart(2, '0')}`;
-            });
-
-            function generateColorGrid() {
-                const colorGrid = document.getElementById('colorGrid');
-                
-                colors.forEach(color => {
-                    const colorBox = document.createElement('div');
-                    colorBox.className = 'color-box';
-                    colorBox.style.backgroundColor = color;
-                    colorBox.onclick = () => sendColor(color);
-                    colorGrid.appendChild(colorBox);
-                });
-            }
 
             function sendColor(color) {
                 const red = parseInt(color.slice(1, 3), 16);
@@ -241,7 +267,128 @@
                         }
                     })
                 })
+                .then(Response=>{
+                    if (Response.ok){
+                        changeDisplay(10);
+                    }
+                    else{
+                        changeDisplay(-1);
+                    }
+                })
+            }
 
+            function sendSeq(sequence) {
+                const number = parseInt(sequence)
+                fetch('/RGB_sequence', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        sequence:{
+                            number
+                        }
+                    })
+                })
+                .then(Response=>{
+                    if (Response.ok){
+                        changeDisplay(number);
+                    }
+                    else{
+                        changeDisplay(-1);
+                    }
+                })
+            }
+            function sendOriginal() {
+                const R1 = parseInt(document.getElementById('R1').value) || 0;
+                const R2 = parseInt(document.getElementById('R2').value) || 0;
+                const R3 = parseInt(document.getElementById('R2').value) || 0;
+
+                const G1 = parseInt(document.getElementById('G1').value) || 0;
+                const G2 = parseInt(document.getElementById('G2').value) || 0;
+                const G3 = parseInt(document.getElementById('G3').value) || 0;
+
+                const B1 = parseInt(document.getElementById('B1').value) || 0;
+                const B2 = parseInt(document.getElementById('B2').value) || 0;
+                const B3 = parseInt(document.getElementById('B3').value) || 0;
+
+                const time = parseInt(document.getElementById('time')) || 1000;
+                fetch('/RGB_original', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        sequence:{
+                            first:{
+                                red: R1,
+                                reen: G1,
+                                blue: B1
+                            },
+                            second:{
+                                red: R2,
+                                reen: G2,
+                                blue: B2
+                            },
+                            third:{
+                                red: R3,
+                                reen: G3,
+                                blue: B3
+                            },
+                            time:{
+                                period:time
+                            }
+                        }
+                    })
+                })
+                .then(Response=>{
+                    if (Response.ok){
+                        changeDisplay(5);
+                    }
+                    else{
+                        changeDisplay(-1);
+                    }
+                })
+            }
+            function changeDisplay(btn){
+                if (btn == 1) {
+                    document.getElementById("seq_1").style.backgroundColor="#0f5246";
+                    document.getElementById("seq_2").style.backgroundColor="#00ffd5";
+                    document.getElementById("seq_3").style.backgroundColor="#00ffd5";
+                    document.getElementById("seq_4").style.backgroundColor="#00ffd5";
+                    document.getElementById("apply").style.backgroundColor="#00ffd5";
+                }
+                else if(btn == 2){
+                    document.getElementById("seq_1").style.backgroundColor="#00ffd5";
+                    document.getElementById("seq_2").style.backgroundColor="#0f5246";
+                    document.getElementById("seq_3").style.backgroundColor="#00ffd5";
+                    document.getElementById("seq_4").style.backgroundColor="#00ffd5";
+                    document.getElementById("apply").style.backgroundColor="#00ffd5";
+                }
+                else if(btn == 3){
+                    document.getElementById("seq_1").style.backgroundColor="#00ffd5";
+                    document.getElementById("seq_2").style.backgroundColor="#00ffd5";
+                    document.getElementById("seq_3").style.backgroundColor="#0f5246";
+                    document.getElementById("seq_4").style.backgroundColor="#00ffd5";
+                    document.getElementById("apply").style.backgroundColor="#00ffd5";
+                }
+                else if(btn == 4){
+                    document.getElementById("seq_1").style.backgroundColor="#00ffd5";
+                    document.getElementById("seq_2").style.backgroundColor="#00ffd5";
+                    document.getElementById("seq_3").style.backgroundColor="#00ffd5";
+                    document.getElementById("seq_4").style.backgroundColor="#0f5246";
+                    document.getElementById("apply").style.backgroundColor="#00ffd5";
+                }   
+                else if(btn == 5){
+                    document.getElementById("seq_1").style.backgroundColor="#00ffd5";
+                    document.getElementById("seq_2").style.backgroundColor="#00ffd5";
+                    document.getElementById("seq_3").style.backgroundColor="#00ffd5";
+                    document.getElementById("seq_4").style.backgroundColor="#00ffd5";
+                    document.getElementById("apply").style.backgroundColor="#0f5246";
+                }
+                else{
+                    document.getElementById("seq_1").style.backgroundColor="#00ffd5";
+                    document.getElementById("seq_2").style.backgroundColor="#00ffd5";
+                    document.getElementById("seq_3").style.backgroundColor="#00ffd5";
+                    document.getElementById("seq_4").style.backgroundColor="#00ffd5";
+                    document.getElementById("apply").style.backgroundColor="#00ffd5";
+                }
             }
         </script>
     </body>

@@ -95,7 +95,14 @@
                         0 -2px 0 black;
                 }
 
-
+                td {
+                    border: 1px solid black; padding: 10px;
+                    padding-left: 50px;
+                    padding-right: 50px;
+                }
+                h3 {
+                    line-height: 1px;
+                }
         </style>
     </head>
     <body>
@@ -151,32 +158,65 @@
                 </h2>
             </div>
             <div id="content">
-                <table>
+                <table style="border-collapse: collapse;">
+                    <tr>
+                        <td><h3>WiFi mode:</h3></td>
+                        <td><h3><span id="wifi_mode">Loading...</span></h3></td>
+                    </tr>
                     <tr>
                         <td><h3>WiFi name:</h3></td>
-                        <td style="padding-left: 50px;"><h3><span id="wifi_name">Loading...</span></h3></td>
+                        <td><h3><span id="wifi_name">Loading...</span></h3></td>
                     </tr>
                     <tr>
                         <td><h3>WiFi password:</h3></td>
-                        <td style="padding-left: 50px;"><h3><span id="wifi_password">Loading...</span></h3></td>
+                        <td><h3><span id="wifi_password">Loading...</span></h3></td>
                     </tr>
                     <tr>
+                    <tr>
+                        <td><h3>MAC Address:</h3></td>
+                        <td><h3><span id="mac">Loading...</span></h3></td>
+                    </tr>
                         <td><h3>IP Address:</h3></td>
-                        <td style="padding-left: 50px;"><h3><span id="ip_addr">Loading...</span></h3></td>
+                        <td><h3><span id="ip_addr">Loading...</span></h3></td>
                     </tr>
                     <tr>
                         <td><h3>Subnet Mask:</h3></td>
-                        <td style="padding-left: 50px;"><h3><span id="mask">Loading...</span></h3></td>
+                        <td><h3><span id="mask">Loading...</span></h3></td>
                     </tr>
                     <tr>
                         <td><h3>Default Gateway:</h3></td>
-                        <td style="padding-left: 50px;"><h3><span id="gw">Loading...</span></h3></td>
+                        <td><h3><span id="gw">Loading...</span></h3></td>
                     </tr>
                     <tr>
-                        <td><h3>Firmware version:</h3></td>
-                        <td style="padding-left: 50px;"><h3><span id="fw_v">Loading...</span></h3></td>
+                        <td><h3>Espressif version:</h3></td>
+                        <td><h3><span id="fw_v">Loading...</span></h3></td>
+                    </tr>
+                    <tr>
+                        <td><h3>Config file:</h3></td>
+                        <td><h3><span id="cfgFile">Loading...</span></h3></td>
+                    </tr>
+                    <tr>
+                        <td><h3>Config file author:</h3></td>
+                        <td><h3><span id="cfgAuthor">Loading...</span></h3></td>
+                    </tr>
+                    <tr>
+                        <td><h3>Config file date of modification:</h3></td>
+                        <td><h3><span id="cfgTime">Loading...</span></h3></td>
                     </tr>
                 </table>
+                <br>
+                <h2 style="margin-left: 50px;">DOWNLOAD CONFIGURATION FILE</h2>
+                <i class="fa fa-solid fa-download", style="font-size: 3vw; color: rgb(255, 75, 180); text-shadow: 2px 2px 0 black, 
+                    -2px 2px 0 black, 
+                    2px -2px 0 black, 
+                    -2px -2px 0 black, 
+                    2px 0 0 black, 
+                    -2px 0 0 black, 
+                    0 2px 0 black, 
+                    0 -2px 0 black;
+                    display: flex;
+                    margin-left: 210px;", onclick="changePage('control')">
+                </i>
             </div>
             <script>
                 function changePage(page){
@@ -197,14 +237,25 @@
                     fetch('/info')
                         .then(response=>response.json())
                         .then(data=>{
+                            document.getElementById('wifi_mode').textContent=data.wifiMode;
                             document.getElementById('wifi_name').textContent=data.wifiName;
                             document.getElementById('wifi_password').textContent=data.wifiPass;
+                            document.getElementById('mac').textContent=data.macAddr;
                             document.getElementById('ip_addr').textContent=data.ipAddr;
                             document.getElementById('mask').textContent=data.subnetMask;
                             document.getElementById('gw').textContent=data.gw;
                             document.getElementById('fw_v').textContent=data.fwV;
+                            document.getElementById('cfgFile').textContent=data.fwV;
+                            document.getElementById('cfgAuthor').textContent=data.fwV;
+                            document.getElementById('cfgTime').textContent=data.fwV;
                         })
                 }
+
+                // function configurationGet(){
+                //     fetch('/download/cfg',{
+                //         method: 'GET'
+                //     });
+                // } TODO!!!!
                 window.onload = infoFetch;
             </script>
         </div>

@@ -10,17 +10,15 @@
 /* User configuration */
 #define STATIC_IP_ENABLED           true
 
-// #define CONFIG_ESP_WIFI_SSID        "UPC6591066"        
-// #define CONFIG_ESP_WIFI_PASSWORD    "uEuyknbts4rt"    
-#define CONFIG_ESP_WIFI_SSID        "HiisiHomesB100"        
-#define CONFIG_ESP_WIFI_PASSWORD    "painuhiiteen"   
+#define CONFIG_ESP_WIFI_SSID        "UPC6591066"        
+#define CONFIG_ESP_WIFI_PASSWORD    "uEuyknbts4rt"    
 #define CONFIG_ESP_MAXIMUM_RETRY    5                   
 
 #define TAG_WIFI_MODULE             0
 #define TAG_HTTP_SERVER             1
 static const char *TAG[2] = {"WIFI_MODULE", "HTTP_SERVER"};
 
-#define MAX_PAGE_SIZE               16384
+#define MAX_PAGE_SIZE               24576
 #define READ_SIZE                   255
 
 #define HTTP_PAGE_PARAMETER_NAME            "page"
@@ -33,13 +31,13 @@ static const char *TAG[2] = {"WIFI_MODULE", "HTTP_SERVER"};
 #define HTTP_PAGE_NAME_CONTROL              "control_page.html"
 
 #define SETTING_FILE_NAME                   "settings.json"
-static const uint8_t defaultStaticIP[4]              ={192, 168, 1, 10};
+static const uint8_t defaultStaticIP[4]              ={192, 168, 0, 10};
 static const uint8_t defaultStaticMask[4]            ={255, 255, 255, 0};
-static const uint8_t defaultStaticGateway[4]         ={192, 168, 1, 10};
+static const uint8_t defaultStaticGateway[4]         ={192, 168, 0, 10};
 
-static uint8_t staticIP[4]              ={192, 168, 1, 10};
+static uint8_t staticIP[4]              ={192, 168, 0, 10};
 static uint8_t staticMask[4]            ={255, 255, 255, 0};
-static uint8_t staticGateway[4]         ={192, 168, 1, 10};
+static uint8_t staticGateway[4]         ={192, 168, 0, 10};
 
 static EventGroupHandle_t wifiEventGroup;
 static int retNum = 0;
@@ -187,13 +185,15 @@ esp_err_t Wifi_SetupConnection(void) {
                 netmask = cJSON_GetObjectItem(network, "netmask")->valuestring;
                 defaultGw = cJSON_GetObjectItem(network, "defaultGateway")->valuestring;
                 // 1. Parsing IP.
+                ESP_LOGW(TAG[0], "CO TO KURWA JEST?, %s", ipAddr);
                 int offset=0;
                 for (uint8_t i = 0; i < 4; i++) {
-                    offset =+ paresAddrStr2Int(&staticIP[i], ipAddr + offset);
+                    offset += paresAddrStr2Int(&staticIP[i], ipAddr + offset);
+                    ESP_LOGW(TAG[0], "OCTET %d : %d",i,  staticIP[i]);
                     if (offset < 0) {
                         ESP_LOGE(TAG[TAG_WIFI_MODULE], "data from file corrupted! Setting default address: 192.168.0.10");
-                        for (uint8_t i = 0; i < 4; i++){
-                            staticIP[i] = defaultStaticIP[i];
+                        for (uint8_t j = 0; j < 4; j++){
+                            staticIP[j] = defaultStaticIP[j];
                         }
                         break;
                     }
@@ -514,12 +514,22 @@ esp_err_t  postRGB_EventHandler(httpd_req_t *req) {
         red = cJSON_GetObjectItem(rgbValues, "red")->valueint;
         green = cJSON_GetObjectItem(rgbValues, "green")->valueint;
         blue = cJSON_GetObjectItem(rgbValues, "blue")->valueint;
-        if (red!=0 && green!=0 && blue!=0){
+        // if (red!=NULL && green!=NULL && blue!=NULL){
             httpd_resp_send(req, "Values actualized", sizeof("Values actualized"));
             actualizeValue(red, green, blue);
-        }
+        // }
     }
     
+    return ESP_OK;
+}
+esp_err_t  postRGBSequence_EventHandler(httpd_req_t *req) {
+    // TODO:
+    httpd_resp_send(req, "Values actualized", sizeof("Values actualized"));
+    return ESP_OK;
+}
+esp_err_t  postRGBOriginal_EventHandler(httpd_req_t *req) {
+    // TODO:
+    httpd_resp_send(req, "Values actualized", sizeof("Values actualized"));
     return ESP_OK;
 }
 
@@ -549,6 +559,18 @@ httpd_uri_t uri_post = {
     .handler = postRGB_EventHandler,
     .user_ctx = NULL };
 
+httpd_uri_t uri_post_seq = {
+    .uri = "/RGB_sequence",
+    .method = HTTP_PUT,
+    .handler = postRGBSequence_EventHandler,
+    .user_ctx = NULL };
+
+httpd_uri_t uri_post_ori = {
+    .uri = "/RGB_original",
+    .method = HTTP_PUT,
+    .handler = postRGBOriginal_EventHandler,
+    .user_ctx = NULL };
+
 /* Set up http server */
 httpd_handle_t setup_server(void)
 {   
@@ -561,6 +583,8 @@ httpd_handle_t setup_server(void)
         httpd_register_uri_handler(server, &get_page);
         httpd_register_uri_handler(server, &get_info);
         httpd_register_uri_handler(server, &uri_post);
+        httpd_register_uri_handler(server, &uri_post_seq);
+        httpd_register_uri_handler(server, &uri_post_ori);
     }
     return server;
 }

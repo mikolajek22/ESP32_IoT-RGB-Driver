@@ -95,7 +95,14 @@
                         0 -2px 0 black;
                 }
 
-
+                td {
+                    border: 1px solid black; padding: 10px;
+                    padding-left: 50px;
+                    padding-right: 50px;
+                }
+                h3 {
+                    line-height: 1px;
+                }
         </style>
     </head>
     <body>
@@ -151,28 +158,58 @@
                 </h2>
             </div>
             <div id="content">
-                <!-- <table>
+                <table style="border-collapse: collapse;">
+                    <tr>
+                        <td><h3>WiFi mode:</h3></td>
+                        <td><input id="wifi_mode"></td>
+                    </tr>
                     <tr>
                         <td><h3>WiFi name:</h3></td>
-                        <td style="padding-left: 50px;"><h3><span id="wifi_name">Loading...</span></h3></td>
-                    </tr>
+                        <td><input id="wifi_name"></td>
+                    </tr>7
                     <tr>
                         <td><h3>WiFi password:</h3></td>
-                        <td style="padding-left: 50px;"><h3><span id="wifi_password">Loading...</span></h3></td>
+                        <td><input id="wifi_password"></td>
                     </tr>
                     <tr>
-                        <td><h3>IP address:</h3></td>
-                        <td style="padding-left: 50px;"><h3><span id="ip_addr">Loading...</span></h3></td>
+                        <td><h3>IP Address:</h3></td>
+                        <td><input id="ip_addr"></td>
                     </tr>
                     <tr>
-                        <td><h3>Subnet mask:</h3></td>
-                        <td style="padding-left: 50px;"><h3><span id="mask">Loading...</span></h3></td>
+                        <td><h3>Subnet Mask:</h3></td>
+                        <td><input id="mask"></td>
                     </tr>
                     <tr>
-                        <td><h3>Firmware version:</h3></td>
-                        <td style="padding-left: 50px;"><h3><span id="fw_v">Loading...</span></h3></td>
+                        <td><h3>Default Gateway:</h3></td>
+                        <td><input id="gw"></td>
                     </tr>
-                </table> -->
+                </table>
+                <br>
+                <h2 style="margin-left: 50px;">UPLOAD CONFIGURATION FILE</h2>
+                <input type="file" id="fileInput" style="margin-left: 150px; margin-bottom: 20px;">
+                <i class="fa fa-solid fa-upload", style="font-size: 3vw; color: rgb(255, 75, 180); text-shadow: 2px 2px 0 black, 
+                    -2px 2px 0 black, 
+                    2px -2px 0 black, 
+                    -2px -2px 0 black, 
+                    2px 0 0 black, 
+                    -2px 0 0 black, 
+                    0 2px 0 black, 
+                    0 -2px 0 black;
+                    display: flex;
+                    margin-left: 210px;", onclick="uploadCfg()">
+                </i>
+                <h2 style="margin-left: 185px;">REBOOT</h2>
+                <i class="fa fa-solid fa-power-off", style="font-size: 3vw; color: rgb(255, 75, 180); text-shadow: 2px 2px 0 black, 
+                    -2px 2px 0 black, 
+                    2px -2px 0 black, 
+                    -2px -2px 0 black, 
+                    2px 0 0 black, 
+                    -2px 0 0 black, 
+                    0 2px 0 black, 
+                    0 -2px 0 black;
+                    display: flex;
+                    margin-left: 210px;", onclick="sysReboot()">
+                </i>
             </div>
             <script>
                 function changePage(page){
@@ -190,15 +227,47 @@
                 }
 
                 function infoFetch(){
-                    fetch('/info')
-                        .then(response=>response.json())
-                        .then(data=>{
-                            document.getElementById('wifi_name').textContent=data.wifiName;
-                            document.getElementById('wifi_password').textContent=data.wifiPass;
-                            document.getElementById('ip_addr').textContent=data.ipAddr;
-                            document.getElementById('mask').textContent=data.subnetMask;
-                            document.getElementById('fw_v').textContent=data.fwV;
+                    fetch('/setup')
+                    //TODO: ustawić na wysyłanie tych danych w JSON
+                        // .then(response=>response.json())
+                        // .then(data=>{
+                        //     document.getElementById('wifi_mode').textContent=data.wifiMode;
+                        //     document.getElementById('wifi_name').textContent=data.wifiName;
+                        //     document.getElementById('wifi_password').textContent=data.wifiPass;
+                        //     document.getElementById('ip_addr').textContent=data.ipAddr;
+                        //     document.getElementById('mask').textContent=data.subnetMask;
+                        //     document.getElementById('gw').textContent=data.gw;
+                        // })
+                }
+                function sysReboot(){
+                    fetch('/sysReboot', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            reboot: true
                         })
+                    })
+                }
+                function uploadCfg(){
+                    const fileInput = document.getElementById('fileInput');
+                    const file = fileInput.files[0];
+                    if (!file) {
+                        alert("File is empty");
+                        return;
+                    }
+                    const formData = new FormData();
+                    formData.append('config', file);
+
+                    fetch('/upload/cfg', {
+                        method: 'POST',
+                        body: formData,
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Błąd podczas przesyłania pliku.');
+                        }
+                        alert('Plik został pomyślnie przesłany!');
+                    })
                 }
                 window.onload = infoFetch;
             </script>
