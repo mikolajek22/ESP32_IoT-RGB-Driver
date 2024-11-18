@@ -29,6 +29,8 @@ static const char *TAG[2] = {"WIFI_MODULE", "HTTP_SERVER"};
 #define HTTP_PAGE_NAME_CONFIG               "config_page.html"
 #define HTTP_PAGE_PARAMETER_CONTROL_NAME    "control"
 #define HTTP_PAGE_NAME_CONTROL              "control_page.html"
+#define HTTP_PAGE_PARAMETER_LOGS_NAME       "logs"
+#define HTTP_PAGE_NAME_LOGS                 "logs_page.html"
 
 #define SETTING_FILE_NAME                   "settings.json"
 static const uint8_t defaultStaticIP[4]              ={192, 168, 0, 10};
@@ -38,6 +40,10 @@ static const uint8_t defaultStaticGateway[4]         ={192, 168, 0, 10};
 static uint8_t staticIP[4]              ={192, 168, 0, 10};
 static uint8_t staticMask[4]            ={255, 255, 255, 0};
 static uint8_t staticGateway[4]         ={192, 168, 0, 10};
+static char   wifiMode[4];
+static char   cfgAuthor[20];
+static char   cfgDate[11];
+static bool    isCfgFile;
 
 static EventGroupHandle_t wifiEventGroup;
 static int retNum = 0;
@@ -166,7 +172,11 @@ esp_err_t Wifi_SetupConnection(void) {
     cJSON *root;
     cJSON *settings;
     cJSON *network;
-
+    
+    bool CfgFile;
+    char* mode;
+    char* author;
+    char* date;
     char* ipAddr;
     char* netmask;
     char* defaultGw;
@@ -179,11 +189,16 @@ esp_err_t Wifi_SetupConnection(void) {
             } while (readBytes == READ_SIZE);
             if (ESP_OK == fs_closeFile(fileID)) {
                 root = cJSON_Parse(buffer);
+                // TODO: check if cfg file is present....
+                CfgFile = true;
                 settings = cJSON_GetObjectItem(root, "settings");
+                author = cJSON_GetObjectItem(settings, "author")->valuestring;
+                date = cJSON_GetObjectItem(settings, "date")->valuestring;
                 network = cJSON_GetObjectItem(settings, "network");
                 ipAddr = cJSON_GetObjectItem(network, "ipAddress")->valuestring;
                 netmask = cJSON_GetObjectItem(network, "netmask")->valuestring;
                 defaultGw = cJSON_GetObjectItem(network, "defaultGateway")->valuestring;
+                mode = cJSON_GetObjectItem(network,"STA/AP")->valuestring;
                 // 1. Parsing IP.
                 ESP_LOGW(TAG[0], "CO TO KURWA JEST?, %s", ipAddr);
                 int offset=0;
@@ -222,6 +237,13 @@ esp_err_t Wifi_SetupConnection(void) {
                         break;
                     }
                 }
+                strncpy(cfgAuthor, author, sizeof(cfgAuthor)-1);
+                strncpy(wifiMode, mode, sizeof(wifiMode)-1);
+                strncpy(cfgDate, date, sizeof(cfgDate)-1);
+                isCfgFile = CfgFile;
+                ESP_LOGW(TAG[0], "AUTHOR: %s", cfgAuthor);
+                ESP_LOGW(TAG[0], "mode: %s", wifiMode);
+                ESP_LOGW(TAG[0], "date: %s", cfgDate);
             }
             else {
                 ESP_LOGE(TAG[TAG_WIFI_MODULE], "File closing error.");
@@ -468,6 +490,43 @@ esp_err_t  getPage_EventHandler(httpd_req_t *req) {
                         ESP_LOGE(TAG[1], "All file handlers are busy!");
                     }
                 }
+                /* SENDING LOGGING PAGE */
+                else if (!strcmp(key, HTTP_PAGE_PARAMETER_LOGS_NAME)) {
+                    if (fs_findID(&fileID) == ESP_OK) { 
+                        pageText = malloc(MAX_PAGE_SIZE);
+                        if (pageText == NULL){
+                            ESP_LOGE(TAG[1],"Not enough memory, malloc failed!");
+                        }
+                        else {
+                            if (ESP_OK == fs_openFile(fileID, HTTP_PAGE_NAME_LOGS)) {
+                                do {
+                                    readBytes = fs_readFile(fileID, HTTP_PAGE_NAME_LOGS, pageText + totalReadBytes, totalReadBytes);
+                                    totalReadBytes += readBytes;
+                                } while (readBytes == READ_SIZE);
+                                if (totalReadBytes > 0) {
+                                    ESP_LOGI(TAG[1], "File to send: \nFile name: %s \nFile size: %d bytes", HTTP_PAGE_NAME_LOGS, totalReadBytes);
+                                    if (httpd_resp_send(req, pageText, totalReadBytes) == ESP_OK) {
+                                        ESP_LOGI(TAG[1], "%s page has been sent", HTTP_PAGE_NAME_LOGS);
+                                    }
+                                    else {
+                                        ESP_LOGE(TAG[1], "%s page sending error!", HTTP_PAGE_NAME_LOGS);
+                                    }
+                                }
+                                else {
+                                    ESP_LOGE(TAG[1], "readed bytes from file: %s is equal to: %d!", HTTP_PAGE_NAME_LOGS, totalReadBytes);
+                                }
+                            fs_closeFile(fileID);
+                            }
+                            else {
+                                ESP_LOGE(TAG[1], "File opening error: %s", HTTP_PAGE_NAME_LOGS);
+                            }
+                        }
+                        free(pageText);
+                    }
+                    else {
+                        ESP_LOGE(TAG[1], "All file handlers are busy!");
+                    }
+                }
 
                 else {
                     ESP_LOGE(TAG[1], "Invalid value of querry parameter.");
@@ -486,17 +545,55 @@ esp_err_t  getPage_EventHandler(httpd_req_t *req) {
 
 /* Get information about ESP32 */
 esp_err_t getInfo_EventHandler(httpd_req_t *req) {
-    const char* json_response[256]; 
-    sprintf(json_response,
-        "{\"wifiName\":\"%s\",\"wifiPass\":\"%s\",\"ipAddr\":\""IPSTR"\",\"subnetMask\":\""IPSTR"\",\"gw\":\""IPSTR"\",\"fwV\":\"%d.%d.%d\"}", 
-        CONFIG_ESP_WIFI_SSID,
-        CONFIG_ESP_WIFI_PASSWORD,
-        IP2STR(&connectionInfo.ip),
-        IP2STR(&connectionInfo.netmask),
-        IP2STR(&connectionInfo.gw),
-        ESP_IDF_VERSION_MAJOR, ESP_IDF_VERSION_MINOR, ESP_IDF_VERSION_PATCH);
+    // const char* json_response[512]; 
+    uint8_t mac[6];
+    char macStr[20];
+    esp_wifi_get_mac(ESP_IF_WIFI_STA, &mac);
+    snprintf(macStr, sizeof(macStr), "%x%x%x%x%x%x",mac[0],mac[1],mac[2],mac[3],mac[4],mac[5]);
+    
+
+    char ipAddrStr[16];
+    snprintf(ipAddrStr, sizeof(ipAddrStr), IPSTR, IP2STR(&connectionInfo.ip));
+
+    char netmaskStr[16];
+    snprintf(netmaskStr, sizeof(netmaskStr), IPSTR, IP2STR(&connectionInfo.netmask));
+
+    char gwStr[16];
+    snprintf(gwStr, sizeof(gwStr), IPSTR, IP2STR(&connectionInfo.gw));
+
+    char fwVStr[6];
+    snprintf(fwVStr, sizeof(fwVStr), "%d.%d.%d", ESP_IDF_VERSION_MAJOR, ESP_IDF_VERSION_MINOR, ESP_IDF_VERSION_PATCH);
+
+    char isCfgStr[6];
+    snprintf(isCfgStr, sizeof(isCfgStr), "%s", isCfgFile ? "true" : "false");
+
+    
+
+// sprintf(json_response,
+    //     "{\"wifiName\":\"%s\",\"wifiPass\":\"%s\",\"ipAddr\":\""IPSTR"\",\"subnetMask\":\""IPSTR"\",\"gw\":\""IPSTR"\",\"fwV\":\"%d.%d.%d\"}", 
+    //     CONFIG_ESP_WIFI_SSID,
+    //     CONFIG_ESP_WIFI_PASSWORD,
+    //     IP2STR(&connectionInfo.ip),
+    //     IP2STR(&connectionInfo.netmask),
+    //     IP2STR(&connectionInfo.gw),
+    //     ESP_IDF_VERSION_MAJOR, ESP_IDF_VERSION_MINOR, ESP_IDF_VERSION_PATCH);
+    cJSON *root;
+    root = cJSON_CreateObject();
+    cJSON_AddItemToObject(root, "wifiMode", cJSON_CreateString(wifiMode));
+    cJSON_AddItemToObject(root, "wifiName", cJSON_CreateString(CONFIG_ESP_WIFI_SSID));
+    cJSON_AddItemToObject(root, "wifiPass", cJSON_CreateString(CONFIG_ESP_WIFI_PASSWORD));
+    cJSON_AddItemToObject(root, "macAddr", cJSON_CreateString(macStr)); //todo
+    cJSON_AddItemToObject(root, "ipAddr", cJSON_CreateString(ipAddrStr));
+    cJSON_AddItemToObject(root, "subnetMask", cJSON_CreateString(netmaskStr));
+    cJSON_AddItemToObject(root, "gw", cJSON_CreateString(gwStr));
+    cJSON_AddItemToObject(root, "fwV", cJSON_CreateString(fwVStr));
+    cJSON_AddItemToObject(root, "cfgFile", cJSON_CreateString(isCfgStr));
+    cJSON_AddItemToObject(root, "cfgAuthor", cJSON_CreateString(cfgAuthor));
+    cJSON_AddItemToObject(root, "cfgTime", cJSON_CreateString(cfgDate));
+    
+    
     httpd_resp_set_type(req, "application/json");
-    httpd_resp_send(req, json_response, strlen(json_response));
+    httpd_resp_send(req, cJSON_Print(root), strlen(cJSON_Print(root)));
     return ESP_OK;
 }
 

@@ -165,7 +165,7 @@
                     -2px 0 0 black, 
                     0 2px 0 black, 
                     0 -2px 0 black; display: flex;
-                    margin-top: 50px;", onclick="changePage('control')">
+                    margin-top: 50px;", onclick="changePage('logs')">
                 </i>
                 <h2 id="nav_text">
                     LOGS
@@ -185,7 +185,6 @@
                         <td><h3>WiFi password:</h3></td>
                         <td><h3><span id="wifi_password">Loading...</span></h3></td>
                     </tr>
-                    <tr>
                     <tr>
                         <td><h3>MAC Address:</h3></td>
                         <td><h3><span id="mac">Loading...</span></h3></td>
@@ -244,6 +243,9 @@
                         case 'control':
                             window.location.href = '/get?page=control';
                             break
+                        case 'logs':
+                            window.location.href = '/get?page=logs';
+                            break
                     }
                 }
 
@@ -259,9 +261,9 @@
                             document.getElementById('mask').textContent=data.subnetMask;
                             document.getElementById('gw').textContent=data.gw;
                             document.getElementById('fw_v').textContent=data.fwV;
-                            document.getElementById('cfgFile').textContent=data.fwV;
-                            document.getElementById('cfgAuthor').textContent=data.fwV;
-                            document.getElementById('cfgTime').textContent=data.fwV;
+                            document.getElementById('cfgFile').textContent=data.cfgFile;
+                            document.getElementById('cfgAuthor').textContent=data.cfgAuthor;
+                            document.getElementById('cfgTime').textContent=data.cfgTime;
                         })
                 }
 

@@ -168,7 +168,7 @@
                     -2px 0 0 black, 
                     0 2px 0 black, 
                     0 -2px 0 black; display: flex;
-                    margin-top: 50px;", onclick="changePage('control')">
+                    margin-top: 50px;", onclick="changePage('logs')">
                 </i>
                 <h2 id="nav_text">
                     LOGS
@@ -197,6 +197,14 @@
                     
                 }
                 setInterval(getLogs, 2000);
+                function changePage(page) {
+                    switch(page) {
+                        case 'main': window.location.href = '/get?page=main'; break;
+                        case 'config': window.location.href = '/get?page=config'; break;
+                        case 'control': window.location.href = '/get?page=control'; break;
+                        case 'logs': window.location.href = '/get?page=logs'; break;
+                    }
+                }
             </script>
         </div>
     </body>
