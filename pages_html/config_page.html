@@ -111,7 +111,7 @@
         </div>
         <div id="container">
             <div id="nav">
-                <i class="fa fa-solid fa-inbox", style="font-size: 3vw; color: rgb(255, 75, 180); 
+                <i class="fa fa-solid fa-house-user", style="font-size: 3vw; color: rgb(255, 75, 180); 
                     text-shadow: 
                         2px 2px 0 black, 
                         -2px 2px 0 black, 
@@ -156,6 +156,20 @@
                 <h2 id="nav_text">
                     RGB<br>CONTROLLER
                 </h2>
+
+                <i class="fa fa-solid fa-terminal", style="font-size: 3vw; color: rgb(255, 75, 180); text-shadow: 2px 2px 0 black, 
+                    -2px 2px 0 black, 
+                    2px -2px 0 black, 
+                    -2px -2px 0 black, 
+                    2px 0 0 black, 
+                    -2px 0 0 black, 
+                    0 2px 0 black, 
+                    0 -2px 0 black; display: flex;
+                    margin-top: 50px;", onclick="changePage('control')">
+                </i>
+                <h2 id="nav_text">
+                    LOGS
+                </h2>
             </div>
             <div id="content">
                 <table style="border-collapse: collapse;">
@@ -166,7 +180,7 @@
                     <tr>
                         <td><h3>WiFi name:</h3></td>
                         <td><input id="wifi_name"></td>
-                    </tr>7
+                    </tr>
                     <tr>
                         <td><h3>WiFi password:</h3></td>
                         <td><input id="wifi_password"></td>
@@ -185,6 +199,18 @@
                     </tr>
                 </table>
                 <br>
+                <h2 style="margin-left: 50px;">SAVE SETTINGS</h2>
+                <i class="fa fa-solid fa-check", style="font-size: 3vw; color: rgb(255, 75, 180); text-shadow: 2px 2px 0 black, 
+                    -2px 2px 0 black, 
+                    2px -2px 0 black, 
+                    -2px -2px 0 black, 
+                    2px 0 0 black, 
+                    -2px 0 0 black, 
+                    0 2px 0 black, 
+                    0 -2px 0 black;
+                    display: flex;
+                    margin-left: 210px;", onclick="uploadCfg()">
+                </i>
                 <h2 style="margin-left: 50px;">UPLOAD CONFIGURATION FILE</h2>
                 <input type="file" id="fileInput" style="margin-left: 150px; margin-bottom: 20px;">
                 <i class="fa fa-solid fa-upload", style="font-size: 3vw; color: rgb(255, 75, 180); text-shadow: 2px 2px 0 black, 
@@ -198,7 +224,7 @@
                     display: flex;
                     margin-left: 210px;", onclick="uploadCfg()">
                 </i>
-                <h2 style="margin-left: 185px;">REBOOT</h2>
+                <h2 style="margin-left: 50px;">REBOOT</h2>
                 <i class="fa fa-solid fa-power-off", style="font-size: 3vw; color: rgb(255, 75, 180); text-shadow: 2px 2px 0 black, 
                     -2px 2px 0 black, 
                     2px -2px 0 black, 
@@ -227,17 +253,26 @@
                 }
 
                 function infoFetch(){
-                    fetch('/setup')
-                    //TODO: ustawić na wysyłanie tych danych w JSON
-                        // .then(response=>response.json())
-                        // .then(data=>{
-                        //     document.getElementById('wifi_mode').textContent=data.wifiMode;
-                        //     document.getElementById('wifi_name').textContent=data.wifiName;
-                        //     document.getElementById('wifi_password').textContent=data.wifiPass;
-                        //     document.getElementById('ip_addr').textContent=data.ipAddr;
-                        //     document.getElementById('mask').textContent=data.subnetMask;
-                        //     document.getElementById('gw').textContent=data.gw;
-                        // })
+                    const wifi_mode = document.getElementById('wifi_mode').value;
+                    const wifi_name = document.getElementById('wifi_name').value;
+                    const wifi_password = document.getElementById('wifi_password').value;
+                    const ip_addr = document.getElementById('ip_addr').value;
+                    const mask = document.getElementById('mask').value;
+                    const gw = document.getElementById('gw').value;
+
+                    fetch('/setup', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            wifi_mode: wifi_mode,
+                            wifi_name:wifi_name,
+                            wifi_password:wifi_password,
+                            ip_addr:ip_addr,
+                            mask:mask,
+                            gw:gw
+                        })
+                    })
+                    alert("Settings uploaded, please reboot")
                 }
                 function sysReboot(){
                     fetch('/sysReboot', {
@@ -247,6 +282,7 @@
                             reboot: true
                         })
                     })
+                    alert("Rebooting...")
                 }
                 function uploadCfg(){
                     const fileInput = document.getElementById('fileInput');
@@ -255,21 +291,24 @@
                         alert("File is empty");
                         return;
                     }
-                    const formData = new FormData();
-                    formData.append('config', file);
+                    else {
+                        const formData = new FormData();
+                        formData.append('config', file);
 
-                    fetch('/upload/cfg', {
-                        method: 'POST',
-                        body: formData,
-                    })
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error('Błąd podczas przesyłania pliku.');
-                        }
-                        alert('Plik został pomyślnie przesłany!');
-                    })
+                        fetch('/upload/cfg', {
+                            method: 'POST',
+                            body: formData,
+                        })
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error('Błąd podczas przesyłania pliku.');
+                            }
+                            alert('Plik został pomyślnie przesłany!');
+                        })
+                        alert("File uploaded please reboot")
+                    }
                 }
-                window.onload = infoFetch;
+                // window.onload = infoFetch;
             </script>
         </div>
     </body>
