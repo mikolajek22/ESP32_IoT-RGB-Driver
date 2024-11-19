@@ -19,6 +19,7 @@
 static const char *TAG[2] = {"WIFI_MODULE", "HTTP_SERVER"};
 
 #define MAX_PAGE_SIZE               24576
+#define MAX_CFG_FILE_SIZE           4096
 #define READ_SIZE                   255
 
 #define HTTP_PAGE_PARAMETER_NAME            "page"
@@ -567,16 +568,6 @@ esp_err_t getInfo_EventHandler(httpd_req_t *req) {
     char isCfgStr[6];
     snprintf(isCfgStr, sizeof(isCfgStr), "%s", isCfgFile ? "true" : "false");
 
-    
-
-// sprintf(json_response,
-    //     "{\"wifiName\":\"%s\",\"wifiPass\":\"%s\",\"ipAddr\":\""IPSTR"\",\"subnetMask\":\""IPSTR"\",\"gw\":\""IPSTR"\",\"fwV\":\"%d.%d.%d\"}", 
-    //     CONFIG_ESP_WIFI_SSID,
-    //     CONFIG_ESP_WIFI_PASSWORD,
-    //     IP2STR(&connectionInfo.ip),
-    //     IP2STR(&connectionInfo.netmask),
-    //     IP2STR(&connectionInfo.gw),
-    //     ESP_IDF_VERSION_MAJOR, ESP_IDF_VERSION_MINOR, ESP_IDF_VERSION_PATCH);
     cJSON *root;
     root = cJSON_CreateObject();
     cJSON_AddItemToObject(root, "wifiMode", cJSON_CreateString(wifiMode));
@@ -590,15 +581,43 @@ esp_err_t getInfo_EventHandler(httpd_req_t *req) {
     cJSON_AddItemToObject(root, "cfgFile", cJSON_CreateString(isCfgStr));
     cJSON_AddItemToObject(root, "cfgAuthor", cJSON_CreateString(cfgAuthor));
     cJSON_AddItemToObject(root, "cfgTime", cJSON_CreateString(cfgDate));
-    
-    
+ 
     httpd_resp_set_type(req, "application/json");
     httpd_resp_send(req, cJSON_Print(root), strlen(cJSON_Print(root)));
     return ESP_OK;
 }
+/* CONFIGURATION FILE DOWNLOAD HANDLER */
+esp_err_t getDownload_EventHandler(httpd_req_t *req) {
+    // TO BE TESTED
+    char*       buffer;
+    uint8_t     fileID;
+    size_t      readBytes;
+    uint16_t    totalReadBytes = 0;
+    if (ESP_OK == fs_findID(&fileID)) {
+        if (ESP_OK == fs_openFile(fileID, SETTING_FILE_NAME)) {
+            buffer = malloc(4096);
+            do {
+                readBytes = fs_readFile(fileID, SETTING_FILE_NAME, buffer + totalReadBytes, totalReadBytes);
+                totalReadBytes += readBytes;
+            } while (readBytes == READ_SIZE);
+
+            if (ESP_OK == fs_closeFile(fileID)) {
+                httpd_resp_set_type(req, "text/plain");
+                httpd_resp_set_hdr(req, "Content-Disposition", "attachment; filename=\"settings.json\"");
+                httpd_resp_send(req, buffer, sizeof(buffer));
+                ESP_LOGI(TAG[TAG_WIFI_MODULE], "Configuration file has been sent.");
+            }
+            else {
+                ESP_LOGE(TAG[TAG_WIFI_MODULE], "Error while closing file.");
+            }
+            free(buffer);
+        }
+    }
+    return ESP_OK;
+}
 
 /* TODO: handler of RGB control */
-esp_err_t  postRGB_EventHandler(httpd_req_t *req) {
+esp_err_t postRGB_EventHandler(httpd_req_t *req) {
     const char* postBuffer[256];
     size_t      contentLen = req->content_len;
     uint8_t     red = 0;
@@ -619,14 +638,77 @@ esp_err_t  postRGB_EventHandler(httpd_req_t *req) {
     
     return ESP_OK;
 }
-esp_err_t  postRGBSequence_EventHandler(httpd_req_t *req) {
+
+esp_err_t postRGBSequence_EventHandler(httpd_req_t *req) {
     // TODO:
     httpd_resp_send(req, "Values actualized", sizeof("Values actualized"));
     return ESP_OK;
 }
-esp_err_t  postRGBOriginal_EventHandler(httpd_req_t *req) {
+
+esp_err_t postRGBOriginal_EventHandler(httpd_req_t *req) {
     // TODO:
     httpd_resp_send(req, "Values actualized", sizeof("Values actualized"));
+    return ESP_OK;
+}
+
+esp_err_t postSetup_EventHandler(httpd_req_t *req) {
+    const char* postBuffer[1024];
+    size_t      contentLen = req->content_len;
+    uint8_t     fileID;
+    // TODO... in settings set SSID and PSASWD, add it to starting PLOX, think if settings should be written from beginning or maybe try to find single object in readed data...
+    char* wifiSSID;
+    char* wifiPasswd;
+    char* ipAddr;
+    char* maskAddr;
+    char* gwAddr;
+    if (httpd_req_recv(req, postBuffer, contentLen) > 0){
+        cJSON *root;
+        root = cJSON_Parse(postBuffer);
+        wifiSSID = cJSON_GetObjectItem(root, "wifi_name")->valuestring;
+        wifiPasswd = cJSON_GetObjectItem(root, "wifi_password")->valuestring;
+        ipAddr = cJSON_GetObjectItem(root, "ip_addr")->valuestring;
+        maskAddr = cJSON_GetObjectItem(root, "mask")->valuestring;
+        gwAddr = cJSON_GetObjectItem(root, "gw")->valuestring;
+
+
+    }
+    return ESP_OK;
+}
+
+esp_err_t postUploadCfg_EventHandler(httpd_req_t *req) {
+    // TO BE TESTED
+    const char* postBuffer[MAX_CFG_FILE_SIZE];
+    size_t      contentLen = req->content_len;
+    uint8_t     fileID;
+    char        *buffer;
+    if (httpd_req_recv(req, postBuffer, contentLen) > 0){
+        buffer = malloc(MAX_CFG_FILE_SIZE);
+        if (ESP_OK == fs_findID(&fileID)) {
+            if (ESP_OK == fs_openFile(fileID, SETTING_FILE_NAME)) {
+                if(sizeof(buffer) == fs_writeFile(fileID, SETTING_FILE_NAME, buffer, sizeof(buffer))) {
+                    ESP_LOGW(TAG[TAG_WIFI_MODULE], "File has been send replaced!");
+                    httpd_resp_send(req, "File saved", sizeof("File saved"));
+                }
+                else {
+                    ESP_LOGE(TAG[TAG_WIFI_MODULE], "Amount of written bytes is different to amount of received bytres");
+                }
+            }
+            else {
+                ESP_LOGE(TAG[TAG_WIFI_MODULE], "failed to open file: %s", SETTING_FILE_NAME);
+            }
+            fs_closeFile(fileID);
+        }
+        else {
+            ESP_LOGE(TAG[TAG_WIFI_MODULE], "No free file handler.");
+        }
+        free(buffer);
+    }
+    return ESP_OK;
+}
+
+esp_err_t postSysReboot_EventHandler(httpd_req_t *req){
+    httpd_resp_send(req, "Sys rebooted", sizeof("Sys rebooted"));
+    esp_restart();
     return ESP_OK;
 }
 
@@ -649,6 +731,12 @@ httpd_uri_t get_info = {
     .handler = getInfo_EventHandler,
     .user_ctx = NULL };
 
+httpd_uri_t get_download = {
+    .uri = "/download",
+    .method = HTTP_GET,
+    .handler = getDownload_EventHandler,
+    .user_ctx = NULL };
+
 /* Post config */
 httpd_uri_t uri_post = {
     .uri = "/RGB",
@@ -668,6 +756,24 @@ httpd_uri_t uri_post_ori = {
     .handler = postRGBOriginal_EventHandler,
     .user_ctx = NULL };
 
+httpd_uri_t uri_post_setup = {
+    .uri = "/setup",
+    .method = HTTP_POST,
+    .handler = postSetup_EventHandler,
+    .user_ctx = NULL };
+
+httpd_uri_t uri_post_uploadCfg = {
+    .uri = "/upload/cfg",
+    .method = HTTP_POST,
+    .handler = postUploadCfg_EventHandler,
+    .user_ctx = NULL };
+
+httpd_uri_t uri_post_sysReboot = {
+    .uri = "/sysReboot",
+    .method = HTTP_POST,
+    .handler = postSysReboot_EventHandler,
+    .user_ctx = NULL };
+
 /* Set up http server */
 httpd_handle_t setup_server(void)
 {   
@@ -682,6 +788,10 @@ httpd_handle_t setup_server(void)
         httpd_register_uri_handler(server, &uri_post);
         httpd_register_uri_handler(server, &uri_post_seq);
         httpd_register_uri_handler(server, &uri_post_ori);
+        httpd_register_uri_handler(server, &get_download);
+        httpd_register_uri_handler(server, &uri_post_setup);
+        httpd_register_uri_handler(server, &uri_post_uploadCfg);
+        httpd_register_uri_handler(server, &uri_post_sysReboot);
     }
     return server;
 }
