@@ -538,7 +538,7 @@ esp_err_t  getPage_EventHandler(httpd_req_t *req) {
             }
         }
         else {
-            ESP_LOGE(TAG[1], "Invalid querry string.");
+            ESP_LOGE(TAG[1], "Querry has not been found.");
         }
     }
     return ESP_OK;
@@ -706,10 +706,89 @@ esp_err_t postUploadCfg_EventHandler(httpd_req_t *req) {
     return ESP_OK;
 }
 
-esp_err_t postSysReboot_EventHandler(httpd_req_t *req){
-    httpd_resp_send(req, "Sys rebooted", sizeof("Sys rebooted"));
-    esp_restart();
-    return ESP_OK;
+// esp_err_t postSysReboot_EventHandler(httpd_req_t *req){
+//     httpd_resp_send(req, "Sys rebooted", sizeof("Sys rebooted"));
+//     esp_restart();
+//     return ESP_OK;
+// }
+
+esp_err_t postConfiguration_EventHandler(httpd_req_t *req) {
+    size_t contentLen = req->content_len;
+    char* buffer;
+    buffer = malloc(contentLen);
+    size_t querryLen = httpd_req_get_url_query_len(req);
+    char* querryContent;
+    // eg. xxx.xxx.xxx.xxx/configuration?action=reboot
+    #define URL_QUERRY_ACTION    "action"
+    #define KEY_QUERRY_REBOOT    "reboot"
+    #define KEY_QUERRY_SAVE      "save"       
+    #define KEY_QUERRY_UPLOAD    "upload"
+    
+
+    if (ESP_OK == httpd_req_get_url_query_str(req, querryContent, querryLen)){
+        char key[64];
+        if (ESP_OK == httpd_query_key_value(querryContent, key, URL_QUERRY_ACTION, 64)) {
+            if(0 == strcmp(key, KEY_QUERRY_REBOOT)) {
+                httpd_resp_send(req, "Sys rebooted", sizeof("Sys rebooted"));
+                esp_restart();
+                // return ESP_OK;
+            }
+            else if ((0 == strcmp(key, KEY_QUERRY_SAVE))){
+
+            }
+            else if ((0 == strcmp(key, KEY_QUERRY_UPLOAD))){
+
+                
+                if (httpd_req_recv(req, buffer, contentLen) > 0){
+                    uint8_t     fileID;
+                    cJSON *root;
+                    root = cJSON_Parse(buffer);
+                    // cJSON_String
+                    // TODO :: parse body to JSON object.
+                    char* rootString = cJSON_Print(root);
+                    if (ESP_OK == fs_findID(&fileID)) {
+                        if (ESP_OK == fs_openFile(fileID, SETTING_FILE_NAME)) {
+                            if(sizeof(buffer) == fs_writeFile(fileID, SETTING_FILE_NAME, buffer, sizeof(buffer))) {
+                                ESP_LOGW(TAG[TAG_WIFI_MODULE], "File has been send replaced!");
+                                httpd_resp_send(req, "File saved", sizeof("File saved"));
+                            }
+                            else {
+                                ESP_LOGE(TAG[TAG_WIFI_MODULE], "Amount of written bytes is different to amount of received bytres");
+                            }
+                        }
+                        else {
+                            ESP_LOGE(TAG[TAG_WIFI_MODULE], "failed to open file: %s", SETTING_FILE_NAME);
+                        }
+                        fs_closeFile(fileID);
+                    }
+                    else {
+                        ESP_LOGE(TAG[TAG_WIFI_MODULE], "No free file handler.");
+                    }
+                }
+
+
+
+
+
+
+
+
+
+            }
+            else {
+                ESP_LOGE(TAG[1], "%s is an unknown value", key);
+            }
+        }
+        else {
+            ESP_LOGE(TAG[1], "%s is not a querry key", URL_QUERRY_ACTION);
+        }
+
+    }
+    else {
+        ESP_LOGE(TAG[1], "Querry has not been found.");
+    }
+    // httpd_query_key_value
+    free(buffer);
 }
 
 /* Get config */
@@ -768,10 +847,16 @@ httpd_uri_t uri_post_uploadCfg = {
     .handler = postUploadCfg_EventHandler,
     .user_ctx = NULL };
 
-httpd_uri_t uri_post_sysReboot = {
-    .uri = "/sysReboot",
+// httpd_uri_t uri_post_sysReboot = {
+//     .uri = "/sysReboot",
+//     .method = HTTP_POST,
+//     .handler = postSysReboot_EventHandler,
+//     .user_ctx = NULL };
+
+httpd_uri_t uri_post_configuration = {
+    .uri = "/configuration",
     .method = HTTP_POST,
-    .handler = postSysReboot_EventHandler,
+    .handler = postConfiguration_EventHandler,
     .user_ctx = NULL };
 
 /* Set up http server */
@@ -785,13 +870,14 @@ httpd_handle_t setup_server(void)
         httpd_register_uri_handler(server, &get_default);
         httpd_register_uri_handler(server, &get_page);
         httpd_register_uri_handler(server, &get_info);
-        httpd_register_uri_handler(server, &uri_post);
-        httpd_register_uri_handler(server, &uri_post_seq);
-        httpd_register_uri_handler(server, &uri_post_ori);
-        httpd_register_uri_handler(server, &get_download);
-        httpd_register_uri_handler(server, &uri_post_setup);
-        httpd_register_uri_handler(server, &uri_post_uploadCfg);
-        httpd_register_uri_handler(server, &uri_post_sysReboot);
+        httpd_register_uri_handler(server, &uri_post_configuration);
+        httpd_register_uri_handler(server, &uri_post);              //ok - to be modified with all rgb handlers included ori and seq. This will allow to reduce handlers.  
+        httpd_register_uri_handler(server, &uri_post_seq);          //todo
+        httpd_register_uri_handler(server, &uri_post_ori);          //todo
+        httpd_register_uri_handler(server, &get_download);          //ok
+        httpd_register_uri_handler(server, &uri_post_setup);        //TODO
+        httpd_register_uri_handler(server, &uri_post_uploadCfg);    // ok
+        // httpd_register_uri_handler(server, &uri_post_sysReboot);    //ok
     }
     return server;
 }
