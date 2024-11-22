@@ -5,8 +5,10 @@
 #include <sys/unistd.h>
 #include <sys/stat.h>
 
-
-esp_err_t fs_openFile(uint8_t fID, char* fName);
+#define WRITE_PERMISSION        "w"
+#define READ_PERMISSION         "r"
+#define READ_WRITE_PERMISSION   "rw"
+esp_err_t fs_openFile(uint8_t fID, char* fName, char* permission);
 esp_err_t fs_closeFile(uint8_t fID);
 /**
  * @brief This function checks if there is free to use file handler.

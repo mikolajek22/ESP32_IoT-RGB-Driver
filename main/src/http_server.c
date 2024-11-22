@@ -182,7 +182,7 @@ esp_err_t Wifi_SetupConnection(void) {
     char* netmask;
     char* defaultGw;
     if (ESP_OK == fs_findID(&fileID)) {
-        if (ESP_OK == fs_openFile(fileID, SETTING_FILE_NAME)) {
+        if (ESP_OK == fs_openFile(fileID, SETTING_FILE_NAME, READ_PERMISSION)) {
             buffer = malloc(1024);
             do {
                 readBytes = fs_readFile(fileID, SETTING_FILE_NAME, buffer + totalReadBytes, totalReadBytes);
@@ -330,7 +330,7 @@ esp_err_t getStart_EventHandler(httpd_req_t *req) {
             ESP_LOGE(TAG[1],"Not enough memory, malloc failed!");
         }
         else {
-            if (ESP_OK == fs_openFile(fileID, HTTP_PAGE_NAME_MAIN)) {
+            if (ESP_OK == fs_openFile(fileID, HTTP_PAGE_NAME_MAIN, READ_PERMISSION)) {
                 do {
                     readBytes = fs_readFile(fileID, HTTP_PAGE_NAME_MAIN, pageText + totalReadBytes, totalReadBytes);
                     totalReadBytes += readBytes;
@@ -386,7 +386,7 @@ esp_err_t  getPage_EventHandler(httpd_req_t *req) {
                             ESP_LOGE(TAG[1],"Not enough memory, malloc failed!");
                         }
                         else {
-                            if (ESP_OK == fs_openFile(fileID, HTTP_PAGE_NAME_MAIN)) {
+                            if (ESP_OK == fs_openFile(fileID, HTTP_PAGE_NAME_MAIN, READ_PERMISSION)) {
                                 do {
                                     readBytes = fs_readFile(fileID, HTTP_PAGE_NAME_MAIN, pageText + totalReadBytes, totalReadBytes);
                                     totalReadBytes += readBytes;
@@ -424,7 +424,7 @@ esp_err_t  getPage_EventHandler(httpd_req_t *req) {
                             ESP_LOGE(TAG[1],"Not enough memory, malloc failed!");
                         }
                         else {
-                            if (ESP_OK == fs_openFile(fileID, HTTP_PAGE_NAME_CONFIG)) {
+                            if (ESP_OK == fs_openFile(fileID, HTTP_PAGE_NAME_CONFIG, READ_PERMISSION)) {
                                 do {
                                     readBytes = fs_readFile(fileID, HTTP_PAGE_NAME_CONFIG, pageText + totalReadBytes, totalReadBytes);
                                     totalReadBytes += readBytes;
@@ -462,7 +462,7 @@ esp_err_t  getPage_EventHandler(httpd_req_t *req) {
                             ESP_LOGE(TAG[1],"Not enough memory, malloc failed!");
                         }
                         else {
-                            if (ESP_OK == fs_openFile(fileID, HTTP_PAGE_NAME_CONTROL)) {
+                            if (ESP_OK == fs_openFile(fileID, HTTP_PAGE_NAME_CONTROL, READ_PERMISSION)) {
                                 do {
                                     readBytes = fs_readFile(fileID, HTTP_PAGE_NAME_CONTROL, pageText + totalReadBytes, totalReadBytes);
                                     totalReadBytes += readBytes;
@@ -499,7 +499,7 @@ esp_err_t  getPage_EventHandler(httpd_req_t *req) {
                             ESP_LOGE(TAG[1],"Not enough memory, malloc failed!");
                         }
                         else {
-                            if (ESP_OK == fs_openFile(fileID, HTTP_PAGE_NAME_LOGS)) {
+                            if (ESP_OK == fs_openFile(fileID, HTTP_PAGE_NAME_LOGS, READ_PERMISSION)) {
                                 do {
                                     readBytes = fs_readFile(fileID, HTTP_PAGE_NAME_LOGS, pageText + totalReadBytes, totalReadBytes);
                                     totalReadBytes += readBytes;
@@ -594,7 +594,7 @@ esp_err_t getDownload_EventHandler(httpd_req_t *req) {
     size_t      readBytes;
     uint16_t    totalReadBytes = 0;
     if (ESP_OK == fs_findID(&fileID)) {
-        if (ESP_OK == fs_openFile(fileID, SETTING_FILE_NAME)) {
+        if (ESP_OK == fs_openFile(fileID, SETTING_FILE_NAME, READ_PERMISSION)) {
             buffer = malloc(4096);
             do {
                 readBytes = fs_readFile(fileID, SETTING_FILE_NAME, buffer + totalReadBytes, totalReadBytes);
@@ -604,7 +604,7 @@ esp_err_t getDownload_EventHandler(httpd_req_t *req) {
             if (ESP_OK == fs_closeFile(fileID)) {
                 httpd_resp_set_type(req, "text/plain");
                 httpd_resp_set_hdr(req, "Content-Disposition", "attachment; filename=\"settings.json\"");
-                httpd_resp_send(req, buffer, sizeof(buffer));
+                httpd_resp_send(req, buffer, totalReadBytes);
                 ESP_LOGI(TAG[TAG_WIFI_MODULE], "Configuration file has been sent.");
             }
             else {
@@ -677,16 +677,23 @@ esp_err_t postSetup_EventHandler(httpd_req_t *req) {
 
 esp_err_t postUploadCfg_EventHandler(httpd_req_t *req) {
     // TO BE TESTED
+    ESP_LOGW(TAG[TAG_WIFI_MODULE], "DUPSKO12345");
     const char* postBuffer[MAX_CFG_FILE_SIZE];
     size_t      contentLen = req->content_len;
     uint8_t     fileID;
     char        *buffer;
-    if (httpd_req_recv(req, postBuffer, contentLen) > 0){
-        buffer = malloc(MAX_CFG_FILE_SIZE);
+    buffer = malloc(contentLen);
+    if (httpd_req_recv(req, buffer, contentLen) > 0){
+        
+        
         if (ESP_OK == fs_findID(&fileID)) {
-            if (ESP_OK == fs_openFile(fileID, SETTING_FILE_NAME)) {
-                if(sizeof(buffer) == fs_writeFile(fileID, SETTING_FILE_NAME, buffer, sizeof(buffer))) {
-                    ESP_LOGW(TAG[TAG_WIFI_MODULE], "File has been send replaced!");
+            if (ESP_OK == fs_openFile(fileID, SETTING_FILE_NAME, WRITE_PERMISSION)) {
+                ESP_LOGW(TAG[TAG_WIFI_MODULE], "received data: %s", buffer);
+                size_t writtenBytes=1;
+                // size_t writtenBytes = fs_writeFile(fileID, SETTING_FILE_NAME, buffer, contentLen);
+                if (0 < writtenBytes) {
+                    ESP_LOGW(TAG[TAG_WIFI_MODULE], "File has been send replaced!, written bytes: %d", writtenBytes);
+                    
                     httpd_resp_send(req, "File saved", sizeof("File saved"));
                 }
                 else {
@@ -787,11 +794,11 @@ httpd_handle_t setup_server(void)
         httpd_register_uri_handler(server, &get_info);
         httpd_register_uri_handler(server, &uri_post);
         httpd_register_uri_handler(server, &uri_post_seq);
+        httpd_register_uri_handler(server, &uri_post_uploadCfg);
+        httpd_register_uri_handler(server, &uri_post_sysReboot);
         httpd_register_uri_handler(server, &uri_post_ori);
         httpd_register_uri_handler(server, &get_download);
         httpd_register_uri_handler(server, &uri_post_setup);
-        httpd_register_uri_handler(server, &uri_post_uploadCfg);
-        httpd_register_uri_handler(server, &uri_post_sysReboot);
     }
     return server;
 }

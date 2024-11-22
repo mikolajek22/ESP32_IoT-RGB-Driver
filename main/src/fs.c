@@ -30,11 +30,11 @@ typedef struct {
 
 static fileID arrFiles[6];
 
-esp_err_t fs_openFile(uint8_t fID, char* fName) {
+esp_err_t fs_openFile(uint8_t fID, char* fName, char* permission) {
     char fileName[255] = "/littlefs/";
     strcat(fileName,fName);
     if (arrFiles[fID].open == FILE_CLOSED){
-        arrFiles[fID].file = fopen(fileName,"r");
+        arrFiles[fID].file = fopen(fileName, permission);
         arrFiles[fID].open = FILE_OPENED;
         ESP_LOGI(LOG_TAG, "File opened!");
         return ESP_OK;
@@ -48,7 +48,7 @@ esp_err_t fs_closeFile(uint8_t fID) {
     if (arrFiles[fID].open == FILE_OPENED){
         fclose(arrFiles[fID].file);
         arrFiles[fID].open = FILE_CLOSED;
-        ESP_LOGI(LOG_TAG, "File opened!");
+        ESP_LOGI(LOG_TAG, "File closed!");
         return ESP_OK;
     }
     else {
@@ -77,7 +77,6 @@ esp_err_t fs_mount(void){
 size_t fs_readFile(uint8_t fID, char* fName, char* buffer, size_t offest){
     size_t readBytes;
     if (arrFiles[fID].file != NULL){
-        // fseek(arrFiles[fID].file, offest, SEEK_SET);
         readBytes = fread(buffer, 1, READ_SIZE, arrFiles[fID].file);
         return readBytes;
     }
@@ -89,24 +88,18 @@ size_t fs_readFile(uint8_t fID, char* fName, char* buffer, size_t offest){
 
 
 size_t fs_writeFile(uint8_t fID, char* fName, char* buffer, uint16_t writeSize){
-    char fileName[255] = "/littlefs/";
-    strcat(fileName,fName);
-    if (arrFiles[fID].open == FILE_CLOSED){
-        arrFiles[fID].file = fopen(fileName,"w");
-        if (arrFiles[fID].file != NULL){
-            arrFiles[fID].open = FILE_OPENED;
-            return fwrite(buffer, 1, writeSize, arrFiles[fID].file);
-        } 
-        else {
-            ESP_LOGE(LOG_TAG, "File opening error!");
-            return -1;
-        }
-    }
+    size_t writtenBytes;
+    if (arrFiles[fID].file != NULL){
+        // arrFiles[fID].open = FILE_OPENED;
+        writtenBytes = fwrite(buffer, 1, writeSize, arrFiles[fID].file);
+        return writtenBytes;
+    } 
     else {
-        ESP_LOGE(LOG_TAG, "File opening error - file already opened!");
-        return -1;
+        ESP_LOGE(LOG_TAG, "write file File is null!");
+        return ESP_FAIL;
     }
 }
+
 
 esp_err_t fs_delateFile(uint8_t fID){
     return ESP_OK;
