@@ -263,7 +263,7 @@
                     const mask = document.getElementById('mask').value;
                     const gw = document.getElementById('gw').value;
 
-                    fetch('/setup', {
+                    fetch('/configuration?action=save', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -278,7 +278,7 @@
                     alert("Settings uploaded, please reboot")
                 }
                 function sysReboot(){
-                    fetch('/sysReboot', {
+                    fetch('/configuration?action=reboot', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -298,7 +298,7 @@
                         const formData = new FormData();
                         formData.append('config', file);
 
-                        fetch('/upload/cfg', {
+                        fetch('/configuration?action=upload', {
                             method: 'POST',
                             body: formData,
                         })
