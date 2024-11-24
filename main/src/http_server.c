@@ -47,6 +47,8 @@ static char   wifiMode[4];
 static char   cfgAuthor[20];
 static char   cfgDate[11];
 static bool    isCfgFile;
+static char   cfgWifiName[64];
+static char   cfgWifiPassword[64];
 
 static EventGroupHandle_t wifiEventGroup;
 static int retNum = 0;
@@ -191,12 +193,15 @@ esp_err_t Wifi_SetupConnection(void) {
     cJSON *network;
     
     bool CfgFile;
+    char* wifiName;
+    char* wifiPassword;
     char* mode;
     char* author;
     char* date;
     char* ipAddr;
     char* netmask;
     char* defaultGw;
+    char* static_ip;
     if (ESP_OK == fs_findID(&fileID)) {
         if (ESP_OK == fs_openFile(fileID, SETTING_FILE_NAME, READ_PERMISSION)) {
             buffer = malloc(1024);
@@ -206,22 +211,24 @@ esp_err_t Wifi_SetupConnection(void) {
             } while (readBytes == READ_SIZE);
             if (ESP_OK == fs_closeFile(fileID)) {
                 root = cJSON_Parse(buffer);
-                // TODO: check if cfg file is present....
-                CfgFile = true;
+
                 settings = cJSON_GetObjectItem(root, "settings");
                 author = cJSON_GetObjectItem(settings, "author")->valuestring;
                 date = cJSON_GetObjectItem(settings, "date")->valuestring;
+
                 network = cJSON_GetObjectItem(settings, "network");
+                wifiName = cJSON_GetObjectItem(network, "wifiName")->valuestring;
+                wifiPassword = cJSON_GetObjectItem(network, "wifiPassword")->valuestring;
                 ipAddr = cJSON_GetObjectItem(network, "ipAddress")->valuestring;
                 netmask = cJSON_GetObjectItem(network, "netmask")->valuestring;
                 defaultGw = cJSON_GetObjectItem(network, "defaultGateway")->valuestring;
                 mode = cJSON_GetObjectItem(network,"STA/AP")->valuestring;
+                static_ip = cJSON_GetObjectItem(network, "staticIP")->valuestring;
+                CfgFile = (!strcmp(static_ip,"true")) ? true : false;
                 // 1. Parsing IP.
-                ESP_LOGW(TAG[0], "CO TO KURWA JEST?, %s", ipAddr);
                 int offset=0;
                 for (uint8_t i = 0; i < 4; i++) {
                     offset += paresAddrStr2Int(&staticIP[i], ipAddr + offset);
-                    ESP_LOGW(TAG[0], "OCTET %d : %d",i,  staticIP[i]);
                     if (offset < 0) {
                         ESP_LOGE(TAG[TAG_WIFI_MODULE], "data from file corrupted! Setting default address: 192.168.0.10");
                         for (uint8_t j = 0; j < 4; j++){
@@ -254,9 +261,25 @@ esp_err_t Wifi_SetupConnection(void) {
                         break;
                     }
                 }
-                strncpy(cfgAuthor, author, sizeof(cfgAuthor)-1);
-                strncpy(wifiMode, mode, sizeof(wifiMode)-1);
-                strncpy(cfgDate, date, sizeof(cfgDate)-1);
+                strncpy(cfgAuthor, author, strlen(author));
+                strncpy(wifiMode, mode, strlen(mode));
+                strncpy(cfgDate, date, strlen(date));
+                if (strlen(wifiName)>0) {
+                    strncpy(cfgWifiName, wifiName, strlen(wifiName));
+                }
+                else {
+                    strncpy(cfgWifiName, CONFIG_ESP_WIFI_SSID, strlen(CONFIG_ESP_WIFI_SSID));
+                }
+
+                if (CONFIG_ESP_WIFI_PASSWORD) {
+                    strncpy(cfgWifiPassword, wifiPassword, strlen(wifiPassword));
+                }
+                else {
+                    strncpy(cfgWifiPassword, CONFIG_ESP_WIFI_PASSWORD, strlen(CONFIG_ESP_WIFI_PASSWORD));
+                }
+
+                ESP_LOGW(TAG[0], "wifi name: %s", cfgWifiName);
+                ESP_LOGW(TAG[0], "wifi passwd: %s", cfgWifiPassword);
                 isCfgFile = CfgFile;
                 ESP_LOGW(TAG[0], "AUTHOR: %s", cfgAuthor);
                 ESP_LOGW(TAG[0], "mode: %s", wifiMode);
@@ -301,11 +324,11 @@ esp_err_t Wifi_SetupConnection(void) {
 
     wifi_config_t wifiConfig = {
         .sta = {
-            .ssid = CONFIG_ESP_WIFI_SSID,
-            .password = CONFIG_ESP_WIFI_PASSWORD,
             .threshold.authmode = WIFI_AUTH_WPA2_PSK,
         },
     };
+    strncpy((char*)wifiConfig.sta.ssid, cfgWifiName, sizeof(wifiConfig.sta.ssid) - 1);
+    strncpy((char*)wifiConfig.sta.password, cfgWifiPassword, sizeof(wifiConfig.sta.password) - 1);
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifiConfig));
     ESP_ERROR_CHECK(esp_wifi_start());
@@ -667,28 +690,6 @@ esp_err_t postRGBOriginal_EventHandler(httpd_req_t *req) {
     return ESP_OK;
 }
 
-esp_err_t postSetup_EventHandler(httpd_req_t *req) {
-    const char* postBuffer[1024];
-    size_t      contentLen = req->content_len;
-    uint8_t     fileID;
-    // TODO... in settings set SSID and PSASWD, add it to starting PLOX, think if settings should be written from beginning or maybe try to find single object in readed data...
-    char* wifiSSID;
-    char* wifiPasswd;
-    char* ipAddr;
-    char* maskAddr;
-    char* gwAddr;
-    if (httpd_req_recv(req, postBuffer, contentLen) > 0){
-        cJSON *root;
-        root = cJSON_Parse(postBuffer);
-        wifiSSID = cJSON_GetObjectItem(root, "wifi_name")->valuestring;
-        wifiPasswd = cJSON_GetObjectItem(root, "wifi_password")->valuestring;
-        ipAddr = cJSON_GetObjectItem(root, "ip_addr")->valuestring;
-        maskAddr = cJSON_GetObjectItem(root, "mask")->valuestring;
-        gwAddr = cJSON_GetObjectItem(root, "gw")->valuestring;
-
-    }
-    return ESP_OK;
-}
 
 esp_err_t postUploadCfg_EventHandler(httpd_req_t *req) {
     // TO BE TESTED
@@ -792,8 +793,14 @@ esp_err_t postConfiguration_EventHandler(httpd_req_t *req) {
                                 if (NULL != cJSON_GetObjectItem(cfgRcv.root, "staticIP")) {
                                     cJSON_GetObjectItem(cfgFile.network, "staticIP")->valuestring = cJSON_GetObjectItem(cfgRcv.root, "staticIP")->valuestring;
                                 }
-                                if (NULL != cJSON_GetObjectItem(cfgRcv.root, "STA/AP")) {
-                                    cJSON_GetObjectItem(cfgFile.network, "STA/AP")->valuestring = cJSON_GetObjectItem(cfgRcv.root, "STA/AP")->valuestring;
+                                if (NULL != cJSON_GetObjectItem(cfgRcv.root, "wifi_mode")) {
+                                    cJSON_GetObjectItem(cfgFile.network, "STA/AP")->valuestring = cJSON_GetObjectItem(cfgRcv.root, "wifi_mode")->valuestring;
+                                }
+                                if (NULL != cJSON_GetObjectItem(cfgRcv.root, "wifiName")) {
+                                    cJSON_GetObjectItem(cfgFile.network, "wifiName")->valuestring = cJSON_GetObjectItem(cfgRcv.root, "wifiName")->valuestring;
+                                }
+                                if (NULL != cJSON_GetObjectItem(cfgRcv.root, "wifiPassword")) {
+                                    cJSON_GetObjectItem(cfgFile.network, "wifiPassword")->valuestring = cJSON_GetObjectItem(cfgRcv.root, "wifiPassword")->valuestring;
                                 }
                             }
                             if (ESP_OK == fs_rewindFile(fileID)) {
@@ -918,11 +925,11 @@ httpd_uri_t uri_post_ori = {
     .handler = postRGBOriginal_EventHandler,
     .user_ctx = NULL };
 
-httpd_uri_t uri_post_setup = {
-    .uri = "/setup",
-    .method = HTTP_POST,
-    .handler = postSetup_EventHandler,
-    .user_ctx = NULL };
+// httpd_uri_t uri_post_setup = {
+//     .uri = "/setup",
+//     .method = HTTP_POST,
+//     .handler = postSetup_EventHandler,
+//     .user_ctx = NULL };
 
 httpd_uri_t uri_post_uploadCfg = {
     .uri = "/upload/cfg",
@@ -958,7 +965,7 @@ httpd_handle_t setup_server(void)
         httpd_register_uri_handler(server, &uri_post_seq);          //todo
         httpd_register_uri_handler(server, &uri_post_ori);          //todo
         httpd_register_uri_handler(server, &get_download);          //ok
-        httpd_register_uri_handler(server, &uri_post_setup);        //TODO
+        // httpd_register_uri_handler(server, &uri_post_setup);        //TODO
         httpd_register_uri_handler(server, &uri_post_uploadCfg);    // ok
         // httpd_register_uri_handler(server, &uri_post_sysReboot);    //ok
     }
