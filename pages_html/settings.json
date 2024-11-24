@@ -1,11 +1,11 @@
 {
     "settings":{
-        "author": "Mikolajek",
+        "author": "CHUJ",
         "date":"05/11/2024",
         "network":
         {
-            "ipAddress":"192.168.0.220",
-            "defaultGateway":"192.168.0.220",
+            "ipAddress":"192.168.1.220",
+            "defaultGateway":"192.168.1.220",
             "netmask":"255.255.255.0",
             "staticIP":"true",
             "STA/AP":"STA"

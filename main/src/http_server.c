@@ -10,8 +10,10 @@
 /* User configuration */
 #define STATIC_IP_ENABLED           true
 
-#define CONFIG_ESP_WIFI_SSID        "UPC6591066"        
-#define CONFIG_ESP_WIFI_PASSWORD    "uEuyknbts4rt"    
+// #define CONFIG_ESP_WIFI_SSID        "UPC6591066"        
+// #define CONFIG_ESP_WIFI_PASSWORD    "uEuyknbts4rt"    
+#define CONFIG_ESP_WIFI_SSID        "Zyxel_96C1"        
+#define CONFIG_ESP_WIFI_PASSWORD    "M7KNTYLG7K"  
 #define CONFIG_ESP_MAXIMUM_RETRY    5                   
 
 #define TAG_WIFI_MODULE             0
@@ -48,6 +50,20 @@ static bool    isCfgFile;
 
 static EventGroupHandle_t wifiEventGroup;
 static int retNum = 0;
+
+typedef struct {
+    cJSON *root;
+    cJSON *settings;
+    cJSON *network;
+    
+    bool CfgFile;
+    char* mode;
+    char* author;
+    char* date;
+    char* ipAddr;
+    char* netmask;
+    char* defaultGw;
+} config_t;
 
 static void Wifi_EventHandler(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data);
 esp_err_t Wifi_SetupConnection(void);
@@ -588,23 +604,23 @@ esp_err_t getInfo_EventHandler(httpd_req_t *req) {
 }
 /* CONFIGURATION FILE DOWNLOAD HANDLER */
 esp_err_t getDownload_EventHandler(httpd_req_t *req) {
-    // TO BE TESTED
+
     char*       buffer;
     uint8_t     fileID;
     size_t      readBytes;
     uint16_t    totalReadBytes = 0;
     if (ESP_OK == fs_findID(&fileID)) {
         if (ESP_OK == fs_openFile(fileID, SETTING_FILE_NAME, READ_PERMISSION)) {
-            buffer = malloc(4096);
+            buffer = calloc(4096, sizeof(uint8_t));
             do {
                 readBytes = fs_readFile(fileID, SETTING_FILE_NAME, buffer + totalReadBytes, totalReadBytes);
                 totalReadBytes += readBytes;
             } while (readBytes == READ_SIZE);
-
+            cJSON *root = cJSON_Parse(buffer);
             if (ESP_OK == fs_closeFile(fileID)) {
                 httpd_resp_set_type(req, "text/plain");
                 httpd_resp_set_hdr(req, "Content-Disposition", "attachment; filename=\"settings.json\"");
-                httpd_resp_send(req, buffer, totalReadBytes);
+                httpd_resp_send(req, cJSON_Print(root), strlen(cJSON_Print(root)));
                 ESP_LOGI(TAG[TAG_WIFI_MODULE], "Configuration file has been sent.");
             }
             else {
@@ -670,7 +686,6 @@ esp_err_t postSetup_EventHandler(httpd_req_t *req) {
         maskAddr = cJSON_GetObjectItem(root, "mask")->valuestring;
         gwAddr = cJSON_GetObjectItem(root, "gw")->valuestring;
 
-
     }
     return ESP_OK;
 }
@@ -713,54 +728,122 @@ esp_err_t postUploadCfg_EventHandler(httpd_req_t *req) {
     return ESP_OK;
 }
 
-// esp_err_t postSysReboot_EventHandler(httpd_req_t *req){
-//     httpd_resp_send(req, "Sys rebooted", sizeof("Sys rebooted"));
-//     esp_restart();
-//     return ESP_OK;
-// }
 
 esp_err_t postConfiguration_EventHandler(httpd_req_t *req) {
     size_t contentLen = req->content_len;
-    char* buffer;
-    buffer = malloc(contentLen);
     size_t querryLen = httpd_req_get_url_query_len(req);
     char* querryContent;
+    querryContent = malloc(contentLen);
     // eg. xxx.xxx.xxx.xxx/configuration?action=reboot
     #define URL_QUERRY_ACTION    "action"
     #define KEY_QUERRY_REBOOT    "reboot"
     #define KEY_QUERRY_SAVE      "save"       
     #define KEY_QUERRY_UPLOAD    "upload"
     
-
-    if (ESP_OK == httpd_req_get_url_query_str(req, querryContent, querryLen)){
+    if (ESP_OK == httpd_req_get_url_query_str(req, querryContent, querryLen + 1)){
         char key[64];
-        if (ESP_OK == httpd_query_key_value(querryContent, key, URL_QUERRY_ACTION, 64)) {
+        if (ESP_OK == httpd_query_key_value(querryContent, URL_QUERRY_ACTION, key, 64)) {
+
+            /* Handle system reboot request */
             if(0 == strcmp(key, KEY_QUERRY_REBOOT)) {
                 httpd_resp_send(req, "Sys rebooted", sizeof("Sys rebooted"));
                 esp_restart();
-                // return ESP_OK;
+                return ESP_OK;
             }
+
+            /* Parse received data to the configuration file */
             else if ((0 == strcmp(key, KEY_QUERRY_SAVE))){
-
-            }
-            else if ((0 == strcmp(key, KEY_QUERRY_UPLOAD))){
-
+                char *buffer;
+                buffer = calloc(MAX_CFG_FILE_SIZE, sizeof(uint8_t));
                 
                 if (httpd_req_recv(req, buffer, contentLen) > 0){
-                    uint8_t     fileID;
-                    cJSON *root;
-                    root = cJSON_Parse(buffer);
-                    // cJSON_String
-                    // TODO :: parse body to JSON object.
-                    char* rootString = cJSON_Print(root);
+                    char *bufferFile;
+                    bufferFile = calloc(MAX_CFG_FILE_SIZE, sizeof(uint8_t));
+                    size_t readBytes;
+                    size_t totalReadBytes = 0;
+                    uint8_t fileID;
                     if (ESP_OK == fs_findID(&fileID)) {
-                        if (ESP_OK == fs_openFile(fileID, SETTING_FILE_NAME)) {
-                            if(sizeof(buffer) == fs_writeFile(fileID, SETTING_FILE_NAME, buffer, sizeof(buffer))) {
-                                ESP_LOGW(TAG[TAG_WIFI_MODULE], "File has been send replaced!");
-                                httpd_resp_send(req, "File saved", sizeof("File saved"));
+                        if (ESP_OK == fs_openFile(fileID, SETTING_FILE_NAME, READ_WRITE_PERMISSION)) {
+                            do {
+                                readBytes = fs_readFile(fileID, SETTING_FILE_NAME, bufferFile + totalReadBytes, totalReadBytes);
+                                totalReadBytes += readBytes;
+                            } while (readBytes == READ_SIZE);
+
+                            config_t cfgRcv;
+                            config_t cfgFile;
+                            cfgRcv.root = cJSON_Parse(buffer);
+                            cfgFile.root = cJSON_Parse(bufferFile);
+
+                            cfgFile.settings = cJSON_GetObjectItem(cfgFile.root, "settings");
+                            cfgFile.network = cJSON_GetObjectItem(cfgFile.settings, "network");
+                            printf("1...");
+                            if (NULL != cfgRcv.root){
+                                printf("2...");
+                                if (NULL != cJSON_GetObjectItem(cfgRcv.root, "ipAddress")) {
+                                    printf("3...");
+                                    cJSON_GetObjectItem(cfgFile.network, "ipAddress")->valuestring = cJSON_GetObjectItem(cfgRcv.root, "ipAddress")->valuestring;
+                                }
+                                if (NULL != cJSON_GetObjectItem(cfgRcv.root, "netmask")) {
+                                    cJSON_GetObjectItem(cfgFile.network, "netmask")->valuestring = cJSON_GetObjectItem(cfgRcv.root, "netmask")->valuestring;
+                                }
+                                if (NULL != cJSON_GetObjectItem(cfgRcv.root, "defaultGateway")) {
+                                    cJSON_GetObjectItem(cfgFile.network, "defaultGateway")->valuestring = cJSON_GetObjectItem(cfgRcv.root, "defaultGateway")->valuestring;
+                                }
+                                if (NULL != cJSON_GetObjectItem(cfgRcv.root, "staticIP")) {
+                                    cJSON_GetObjectItem(cfgFile.network, "staticIP")->valuestring = cJSON_GetObjectItem(cfgRcv.root, "staticIP")->valuestring;
+                                }
+                                if (NULL != cJSON_GetObjectItem(cfgRcv.root, "STA/AP")) {
+                                    cJSON_GetObjectItem(cfgFile.network, "STA/AP")->valuestring = cJSON_GetObjectItem(cfgRcv.root, "STA/AP")->valuestring;
+                                }
+                            }
+                            if (ESP_OK == fs_rewindFile(fileID)) {
+                                printf("4...");
+                                if (0 < fs_writeFile(fileID, SETTING_FILE_NAME, cJSON_Print(cfgFile.root), strlen(cJSON_Print(cfgFile.root)))) {
+                                    printf("5...");
+                                    httpd_resp_send(req, "Configuration saved", strlen("Configuration saved"));
+                                }
+                                else {
+                                    ESP_LOGE(TAG[TAG_WIFI_MODULE], "Error while writting into configuration file: %s", SETTING_FILE_NAME);
+                                }
                             }
                             else {
-                                ESP_LOGE(TAG[TAG_WIFI_MODULE], "Amount of written bytes is different to amount of received bytres");
+                                ESP_LOGE(TAG[TAG_WIFI_MODULE], "Rewinding file: %s error. Data has not been saved.", SETTING_FILE_NAME);
+                            }
+                            fs_closeFile(fileID);
+
+                            free(bufferFile);
+                        }
+                    }
+                    
+                }
+                free(buffer);
+            }
+
+            /* Configuration file upload & save in the LFS */
+            else if ((0 == strcmp(key, KEY_QUERRY_UPLOAD))){
+                char* buffer;
+                buffer = malloc(MAX_CFG_FILE_SIZE);
+                if (httpd_req_recv(req, buffer, contentLen) > 0){
+                    httpd_resp_send(req, "File received", sizeof("File received"));
+
+                    // JSON data must by found at multiplepart payload first to be assigned as a cJSON object.
+                    char* bufferJson = strstr(buffer, "\r\n\r\n");  //find firs sequence before json data (confirmed in Wire Shark)
+                    bufferJson += 4;    // Start after "\r\n\r\n"
+                    char* bufferJsonEnd = strstr(buffer, "\r\n--"); //find the end of the json payload.
+                    *bufferJsonEnd = '\0';  // cut out everything what is after json payload
+
+                    cJSON *root;
+                    root = cJSON_Parse(bufferJson);
+                    
+                    uint8_t     fileID;
+                    if (ESP_OK == fs_findID(&fileID)) {
+                        if (ESP_OK == fs_openFile(fileID, SETTING_FILE_NAME, WRITE_PERMISSION)) {
+                            size_t writtenBytes = fs_writeFile(fileID, SETTING_FILE_NAME, cJSON_Print(root), strlen(cJSON_Print(root)));
+                            if(0 < writtenBytes) {
+                                ESP_LOGI(TAG[TAG_WIFI_MODULE], "%s File has been send replaced!", SETTING_FILE_NAME);
+                            }
+                            else {
+                                ESP_LOGE(TAG[TAG_WIFI_MODULE], "Writting error: %d", writtenBytes);
                             }
                         }
                         else {
@@ -772,16 +855,10 @@ esp_err_t postConfiguration_EventHandler(httpd_req_t *req) {
                         ESP_LOGE(TAG[TAG_WIFI_MODULE], "No free file handler.");
                     }
                 }
-
-
-
-
-
-
-
-
-
+                free(buffer);
             }
+
+            /* Unknown request? */
             else {
                 ESP_LOGE(TAG[1], "%s is an unknown value", key);
             }
@@ -789,13 +866,12 @@ esp_err_t postConfiguration_EventHandler(httpd_req_t *req) {
         else {
             ESP_LOGE(TAG[1], "%s is not a querry key", URL_QUERRY_ACTION);
         }
-
     }
     else {
         ESP_LOGE(TAG[1], "Querry has not been found.");
     }
-    // httpd_query_key_value
-    free(buffer);
+    free(querryContent);
+    return ESP_OK;
 }
 
 /* Get config */

@@ -7,7 +7,7 @@
 
 #define WRITE_PERMISSION        "w"
 #define READ_PERMISSION         "r"
-#define READ_WRITE_PERMISSION   "rw"
+#define READ_WRITE_PERMISSION   "r+"
 esp_err_t fs_openFile(uint8_t fID, char* fName, char* permission);
 esp_err_t fs_closeFile(uint8_t fID);
 /**
@@ -47,6 +47,13 @@ size_t fs_readFile(uint8_t fID, char* fName, char* buffer, size_t offest);
  * @return size of the written data (bytes)
  */
 size_t fs_writeFile(uint8_t fID, char* fName, char* buffer, uint16_t writeSize);
+
+/**
+ * @brief file rewinding
+ * @param ID IN, ID of the file handler
+ * @return ESP_OK if file has been rewinded, ESP_FAIL if file ID has not been found.
+ */
+esp_err_t fs_rewindFile(uint8_t fID);
 
 /**
  * @brief file delating

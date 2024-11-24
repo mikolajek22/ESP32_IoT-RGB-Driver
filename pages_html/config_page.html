@@ -175,7 +175,7 @@
                 <table style="border-collapse: collapse;">
                     <tr>
                         <td><h3>WiFi mode:</h3></td>
-                        <td><input id="wifi_mode"></td>
+                        <td><input id="STA/AP"></td>
                     </tr>
                     <tr>
                         <td><h3>WiFi name:</h3></td>
@@ -187,15 +187,19 @@
                     </tr>
                     <tr>
                         <td><h3>IP Address:</h3></td>
-                        <td><input id="ip_addr"></td>
+                        <td><input id="ipAddress"></td>
                     </tr>
                     <tr>
                         <td><h3>Subnet Mask:</h3></td>
-                        <td><input id="mask"></td>
+                        <td><input id="netmask"></td>
                     </tr>
                     <tr>
                         <td><h3>Default Gateway:</h3></td>
-                        <td><input id="gw"></td>
+                        <td><input id="defaultGateway"></td>
+                    </tr>
+                    <tr>
+                        <td><h3>StaticIP:</h3></td>
+                        <td><input id="staticIP"></td>
                     </tr>
                 </table>
                 <br>
@@ -209,7 +213,7 @@
                     0 2px 0 black, 
                     0 -2px 0 black;
                     display: flex;
-                    margin-left: 210px;", onclick="uploadCfg()">
+                    margin-left: 210px;", onclick="infoFetch()">
                 </i>
                 <h2 style="margin-left: 50px;">UPLOAD CONFIGURATION FILE</h2>
                 <input type="file" id="fileInput" style="margin-left: 150px; margin-bottom: 20px;">
@@ -256,12 +260,13 @@
                 }
 
                 function infoFetch(){
-                    const wifi_mode = document.getElementById('wifi_mode').value;
+                    const wifi_mode = document.getElementById('STA/AP').value;
                     const wifi_name = document.getElementById('wifi_name').value;
                     const wifi_password = document.getElementById('wifi_password').value;
-                    const ip_addr = document.getElementById('ip_addr').value;
-                    const mask = document.getElementById('mask').value;
-                    const gw = document.getElementById('gw').value;
+                    const ip_addr = document.getElementById('ipAddress').value;
+                    const mask = document.getElementById('netmask').value;
+                    const gw = document.getElementById('defaultGateway').value;
+                    const staticIP = document.getElementById('staticIP').value;
 
                     fetch('/configuration?action=save', {
                         method: 'POST',
@@ -270,9 +275,10 @@
                             wifi_mode: wifi_mode,
                             wifi_name:wifi_name,
                             wifi_password:wifi_password,
-                            ip_addr:ip_addr,
-                            mask:mask,
-                            gw:gw
+                            ipAddress:ip_addr,
+                            netmask:mask,
+                            defaultGateway:gw,
+                            staticIP:staticIP
                         })
                     })
                     alert("Settings uploaded, please reboot")
@@ -300,6 +306,7 @@
 
                         fetch('/configuration?action=upload', {
                             method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
                             body: formData,
                         })
                         .then(response => {
@@ -311,7 +318,6 @@
                         alert("File uploaded please reboot")
                     }
                 }
-                // window.onload = infoFetch;
             </script>
         </div>
     </body>

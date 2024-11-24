@@ -100,6 +100,16 @@ size_t fs_writeFile(uint8_t fID, char* fName, char* buffer, uint16_t writeSize){
     }
 }
 
+esp_err_t fs_rewindFile(uint8_t fID) {
+    ftruncate(fileno(arrFiles[fID].file), 0);   //find file decription, set length to 0. This will cause owerwritting whole file.
+    if (arrFiles[fID].file != NULL){ 
+        rewind(arrFiles[fID].file);
+        return ESP_OK;
+    }
+    else {
+        return ESP_FAIL;
+    }
+}
 
 esp_err_t fs_delateFile(uint8_t fID){
     return ESP_OK;

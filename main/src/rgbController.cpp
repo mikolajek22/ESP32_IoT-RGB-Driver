@@ -59,9 +59,9 @@ void rgbController_main(void *pvParameters) {
         }
 
         /* change values of duty cycle */
-        ledc_set_duty(controllerCfg->ledc_timer->speed_mode, controllerCfg->ledc_channel[RED]->channel, 512);
-        ledc_set_duty(controllerCfg->ledc_timer->speed_mode, controllerCfg->ledc_channel[GREEN]->channel, 512);
-        ledc_set_duty(controllerCfg->ledc_timer->speed_mode, controllerCfg->ledc_channel[BLUE]->channel, 512);
+        ledc_set_duty(controllerCfg->ledc_timer->speed_mode, controllerCfg->ledc_channel[RED]->channel, color[RED].value);
+        ledc_set_duty(controllerCfg->ledc_timer->speed_mode, controllerCfg->ledc_channel[GREEN]->channel, color[GREEN].value);
+        ledc_set_duty(controllerCfg->ledc_timer->speed_mode, controllerCfg->ledc_channel[BLUE]->channel, color[BLUE].value);
 // 2*color[RED].value
         /* update values of duty cycle*/
         ledc_update_duty(controllerCfg->ledc_timer->speed_mode, controllerCfg->ledc_channel[RED]->channel);
