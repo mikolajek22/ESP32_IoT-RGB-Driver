@@ -27,6 +27,8 @@
 // #include "driver/adc.h"
 #include "http_server.h"
 
+#include "startup.h"
+
 #define RED_LED_PIN         13
 #define GREEN_LED_PIN       12
 #define BLUE_LED_PIN        14
@@ -89,22 +91,16 @@ void app_main()
     /* little file system initialization */
     if (ESP_OK == fs_mount()) {
         ESP_LOGI(TAG, "LFS mounted successfully");
-
+        
         /* timers initialization */
         init_hw();
-
+        startup_ReadConfiguration();
         /* simultanous tasks creation */
         xTaskCreatePinnedToCore(http_server_main,"http_server",16384,NULL,10,&taskWebServer,1);
         xTaskCreatePinnedToCore(rgbController_main,"color_regulator",16384, &rgbParams,5,&taskRgbController,1);
-        ledc_set_duty(LEDC_MODE, LEDC_CHANNEL, LEDC_DUTY);
-        ledc_set_duty(LEDC_MODE, LEDC_CHANNEL + 1, LEDC_DUTY);
-        ledc_set_duty(LEDC_MODE, LEDC_CHANNEL + 2, LEDC_DUTY);
-        ledc_update_duty(LEDC_MODE, LEDC_CHANNEL);
-        ledc_update_duty(LEDC_MODE, LEDC_CHANNEL + 1);
-        ledc_update_duty(LEDC_MODE, LEDC_CHANNEL + 2);
     } 
     else {
-        ESP_LOGE(TAG, "Failed to start Application");
+        ESP_LOGE(TAG, "Failed to mount LFS");
     }
     
 }

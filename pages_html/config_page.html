@@ -268,19 +268,33 @@
                     const gw = document.getElementById('defaultGateway').value;
                     const staticIP = document.getElementById('staticIP').value;
 
+                    // fetch('/configuration?action=save', {
+                    //     method: 'POST',
+                    //     headers: { 'Content-Type': 'application/json' },
+                    //     body: JSON.stringify({
+                    //         wifi_mode: wifi_mode,
+                    //         wifiName:wifi_name,
+                    //         wifiPassword:wifi_password,
+                    //         ipAddress:ip_addr,
+                    //         netmask:mask,
+                    //         defaultGateway:gw,
+                    //         staticIP:staticIP
+                    //     })
+                    // })
+                    const data = {};
+                    if (wifi_mode) data.wifi_mode = wifi_mode;
+                    if (wifi_name) data.wifiName = wifi_name;
+                    if (wifi_password) data.wifiPassword = wifi_password;
+                    if (ip_addr) data.ipAddress = ip_addr;
+                    if (mask) data.netmask = mask;
+                    if (gw) data.defaultGateway = gw;
+                    if (staticIP) data.staticIP = staticIP;
                     fetch('/configuration?action=save', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            wifi_mode: wifi_mode,
-                            wifiName:wifi_name,
-                            wifiPassword:wifi_password,
-                            ipAddress:ip_addr,
-                            netmask:mask,
-                            defaultGateway:gw,
-                            staticIP:staticIP
-                        })
+                        body: JSON.stringify(data)
                     })
+
                     alert("Settings uploaded, please reboot")
                 }
                 function sysReboot(){

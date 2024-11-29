@@ -8,8 +8,29 @@
 #define WRITE_PERMISSION        "w"
 #define READ_PERMISSION         "r"
 #define READ_WRITE_PERMISSION   "r+"
+
+#define READ_SIZE           255
+
+/**
+ * @brief used to open file from LFS. It is obligatory to do any operation on the file, e.g. wirte/read. In case of the file does not exist it will be created.
+ * 
+ * @param fID IN, ID of the file handler
+ * @param fName IN, string name of the file to be opened.
+ * @param permission IN, access to the file wirte, read or read/write ("r", "w", "r+")
+ * 
+ * @returns ESP_OK if file has been opened, else ESP_FAIL
+ **/
 esp_err_t fs_openFile(uint8_t fID, char* fName, char* permission);
+
+/**
+ * @brief Closing file function. It is necessery to close file in order to save changes.
+ * 
+ * @param fID IN, ID of the file handler
+ * 
+ * @returns ESP_OK if file has been closed, else ESP_FAIL.
+ **/
 esp_err_t fs_closeFile(uint8_t fID);
+
 /**
  * @brief This function checks if there is free to use file handler.
  * 
