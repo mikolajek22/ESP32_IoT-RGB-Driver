@@ -6,6 +6,8 @@
 #define GREEN   1
 #define BLUE    2
 
+
+
 #define DUTY_RESOLUTION     2^8
 #define MAX_DUTY_VAL        2*DUTY_RESOLUTION
 
@@ -13,12 +15,15 @@
 Color redColorHandler;
 Color greenColorHandler;
 Color blueColorHandler;
+
 typedef struct color_t{
     uint8_t mode;
     uint8_t value;
 };
 color_t color[3];
 uint8_t generalMode = false;
+static uint32_t periodTime;
+static uint8_t seqNo = 0;
 
 typedef struct {
     ledc_channel_config_t *ledc_channel[3];
@@ -31,10 +36,210 @@ void actualizeValue(uint8_t red, uint8_t green, uint8_t blue){
     blueColorHandler.setValue(blue);
 }
 
-void sequentialMode(){
-
+void actualizeMode(uint8_t redMode, uint8_t greenMode, uint8_t blueMode, uint8_t sequenceNo, uint32_t period){
+    redColorHandler.setMode(redMode);
+    greenColorHandler.setMode(greenMode);
+    blueColorHandler.setMode(blueMode);
+    periodTime = period;
+    seqNo = sequenceNo;
 }
 
+void sequentialMode(uint8_t sNo, uint32_t period){
+    static uint8_t tempRed;
+    static uint8_t tempGreen;
+    static uint8_t tempBlue;
+
+    static bool    init = false;
+    static uint8_t prevSNo;
+    static uint8_t step;
+    uint32_t startTick = 0;
+    uint32_t sumTicks = 0;
+    uint32_t timeDelay = period/255;
+
+    if (prevSNo != sNo) {
+        init = false;
+    }
+
+    switch(sNo){
+
+        /* RED -> GREEN -> BLUE -> RED  (fade) */
+        case 1:
+            if (!init) {
+                init = true;
+                //default red
+                tempRed = 255;
+                tempGreen = 0;
+                tempBlue = 0;
+                step = 1;
+            }
+            else {
+                switch (step){
+                    case 1:
+                        //change to green
+                        tempRed--;
+                        tempGreen++;
+                        if (tempRed == 0 && tempGreen == 255) { step++; }
+                        break;
+                    case 2:
+                        //change to blue
+                        tempGreen--;
+                        tempBlue++;
+                        if (tempGreen == 0 && tempBlue == 255) { step++; }
+                        break;
+                    case 3:
+                        //change to red
+                        tempBlue--;
+                        tempRed++;
+                        if (tempBlue == 0 && tempRed == 255) { step = 1; }
+                        break;
+                }
+            }
+
+            /* period between 2 phases */
+            startTick = xTaskGetTickCount();
+            do {
+                sumTicks = xTaskGetTickCount() - startTick;
+            } while (10 * sumTicks < timeDelay);
+
+            break;
+
+        /* PINK -> SEA -> YELLOW -> PINK  (fade) */
+        case 2:
+            if (!init) {
+                init = true;
+                //default pink
+                tempRed = 255;
+                tempGreen = 0;
+                tempBlue = 255;
+                step = 1;
+            }
+            else {
+                switch (step){
+                    case 1:
+                        //change to sea
+                        tempRed--;
+                        tempGreen++;
+                        if (tempRed == 0 && tempGreen == 255) { step++; }
+                        break;
+                    case 2:
+                        //change to yellow
+                        tempBlue--;
+                        tempRed++;
+                        if (tempRed == 255 && tempBlue == 0) { step++; }
+                        break;
+                    case 3:
+                        //change to pink
+                        tempBlue++;
+                        tempGreen--;
+                        if (tempBlue == 255 && tempGreen == 0) { step = 1; }
+                        break;
+                }
+            }
+
+            /* period between 2 phases */
+            startTick = xTaskGetTickCount();
+            do {
+                sumTicks = xTaskGetTickCount() - startTick;
+            } while (10 * sumTicks < timeDelay);
+
+            break;
+
+        /* BLUE -> PINK -> RED -> PINK -> BLUE (fade)*/
+        case 3:
+            if (!init) {
+                init = true;
+                //default pink
+                tempRed = 0;
+                tempGreen = 0;
+                tempBlue = 255;
+                step = 1;
+            }
+            else {
+                switch (step){
+                    case 1:
+                        //change to pink
+                        tempRed++;
+                        if (tempRed == 255) { step++; }
+                        break;
+                    case 2:
+                        //change to red
+                        tempBlue--;
+                        if (tempBlue == 0) { step++; }
+                        break;
+                    case 3:
+                        //change to pink
+                        tempBlue++;
+                        if (tempBlue == 255) { step++; }
+                        break;
+                    case 4:
+                        //change to pink
+                        tempRed--;
+                        if (tempRed == 0) { step = 1; }
+                        break;
+                }
+            }
+
+            /* period between 2 phases */
+            startTick = xTaskGetTickCount();
+            do {
+                sumTicks = xTaskGetTickCount() - startTick;
+            } while (10 * sumTicks < timeDelay);
+            
+            break;
+        
+        /* RED -> GREEN -> BLUE (fast change)*/
+        case 4:
+            if (!init) {
+                init = true;
+                //default RED
+                tempRed = 255;
+                tempGreen = 0;
+                tempBlue = 0;
+                step = 1;
+            }
+            else {
+                switch (step){
+                    case 1:
+                        //change to green
+                        tempRed = 0;
+                        tempGreen = 255;
+                        step++;
+                        break;
+                    case 2:
+                        //change to blue
+                        tempGreen = 0;
+                        tempBlue = 255;
+                        step++;
+                        break;
+                    case 3:
+                        //change to red
+                        tempBlue = 0;
+                        tempRed = 255;
+                        step = 1;
+                        break;
+                }
+            }
+
+            /* period between 2 phases */
+            startTick = xTaskGetTickCount();
+            do {
+                sumTicks = xTaskGetTickCount() - startTick;
+            } while (10 * sumTicks < timeDelay);
+            break;
+
+        default:
+            ESP_LOGW("rgb","sequence number unknown????");
+            break;
+    }
+    color[RED].value = tempRed;
+    color[GREEN].value = tempGreen;
+    color[BLUE].value = tempBlue;
+    prevSNo = sNo;
+}
+
+void createSequence(colors_t first, colors_t through, colors_t last){
+    printf("DUPA");
+}
 
 void rgbController_main(void *pvParameters) {
     static rgbController_t *controllerCfg = static_cast<rgbController_t*>(pvParameters);
@@ -49,10 +254,16 @@ void rgbController_main(void *pvParameters) {
             color[RED].value = redColorHandler.getValue();
             color[GREEN].value = greenColorHandler.getValue();
             color[BLUE].value = blueColorHandler.getValue();
+            uint32_t startTick = xTaskGetTickCount();
+            uint32_t sumTicks=0;
+            /* wait for the moment */
+            do {
+                sumTicks = xTaskGetTickCount() - startTick;
+            } while (10 * sumTicks < 100);
         }
 
         else if (generalMode == 3) {     // Sequence mode
-            sequentialMode(); 
+            sequentialMode(seqNo,  periodTime); 
         }
         else {
             printf("mode fault");
@@ -62,14 +273,14 @@ void rgbController_main(void *pvParameters) {
         ledc_set_duty(controllerCfg->ledc_timer->speed_mode, controllerCfg->ledc_channel[RED]->channel, color[RED].value);
         ledc_set_duty(controllerCfg->ledc_timer->speed_mode, controllerCfg->ledc_channel[GREEN]->channel, color[GREEN].value);
         ledc_set_duty(controllerCfg->ledc_timer->speed_mode, controllerCfg->ledc_channel[BLUE]->channel, color[BLUE].value);
-// 2*color[RED].value
+
         /* update values of duty cycle*/
         ledc_update_duty(controllerCfg->ledc_timer->speed_mode, controllerCfg->ledc_channel[RED]->channel);
         ledc_update_duty(controllerCfg->ledc_timer->speed_mode, controllerCfg->ledc_channel[GREEN]->channel);
         ledc_update_duty(controllerCfg->ledc_timer->speed_mode, controllerCfg->ledc_channel[BLUE]->channel);
         // printf("twoja statra to kopara\n");
         ESP_LOGW("RGB","written %d, %d, %d",color[RED].value,color[GREEN].value,color[BLUE].value);
-        vTaskDelay(500);
+        // vTaskDelay(500);
     }
     
 }

@@ -199,29 +199,11 @@ httpd_uri_t get_download = {
     .user_ctx = NULL };
 
 /* Handlers configuration */
-httpd_uri_t uri_post = {
+httpd_uri_t uri_put_rgb = {
     .uri = "/RGB",
     .method = HTTP_PUT,
     .handler = http_handlers_postRGB_EventHandler,
     .user_ctx = NULL };
-
-httpd_uri_t uri_post_seq = {
-    .uri = "/RGB_sequence",
-    .method = HTTP_PUT,
-    .handler = http_handlers_postRGBSequence_EventHandler,
-    .user_ctx = NULL };
-
-httpd_uri_t uri_post_ori = {
-    .uri = "/RGB_original",
-    .method = HTTP_PUT,
-    .handler = http_handlers_postRGBOriginal_EventHandler,
-    .user_ctx = NULL };
-
-// httpd_uri_t uri_post_uploadCfg = {
-//     .uri = "/upload/cfg",
-//     .method = HTTP_POST,
-//     .handler = postUploadCfg_EventHandler,
-//     .user_ctx = NULL };
 
 httpd_uri_t uri_post_configuration = {
     .uri = "/configuration",
@@ -240,9 +222,7 @@ httpd_handle_t setup_server(void)
         httpd_register_uri_handler(server, &get_page);
         httpd_register_uri_handler(server, &get_info);
         httpd_register_uri_handler(server, &uri_post_configuration);
-        httpd_register_uri_handler(server, &uri_post);              //ok - to be modified with all rgb handlers included ori and seq. This will allow to reduce handlers.  
-        httpd_register_uri_handler(server, &uri_post_seq);          //todo
-        httpd_register_uri_handler(server, &uri_post_ori);          //todo
+        httpd_register_uri_handler(server, &uri_put_rgb);              //ok - to be modified with all rgb handlers included ori and seq. This will allow to reduce handlers.  
         httpd_register_uri_handler(server, &get_download);          //ok
     }
     return server;

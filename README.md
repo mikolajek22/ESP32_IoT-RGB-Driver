@@ -38,7 +38,9 @@ idf.py -p COMX monitor
 ### TODO:
 * BLE server to set network configuration in case of problems with internet connection.
 * BLE server to controll rgb strip.
-# TO BE DELETED: 
-command:
-idf.py partition_table littlefs_flash
 
+#TODO:
+- add online logging
+- maybe linker script?
+- for the future add BLE server to configure config file
+- add UART communication to be able to sen configuration and display logs

@@ -32,8 +32,6 @@ extern esp_err_t http_handlers_getDownload_EventHandler(httpd_req_t *req);
 
 
 extern esp_err_t http_handlers_postRGB_EventHandler(httpd_req_t *req);
-extern esp_err_t http_handlers_postRGBSequence_EventHandler(httpd_req_t *req);
-extern esp_err_t http_handlers_postRGBOriginal_EventHandler(httpd_req_t *req);
 
 /**
  * @brief Changing settings.json file. It handles upload of configuration file to the server (esp32), changing configuration file by typing information directly on the webserver. Reboot request handler

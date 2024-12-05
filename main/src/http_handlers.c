@@ -20,13 +20,31 @@
 #define VALUE_QUERY_LOGS            "logs"
 #define HTML_PAGE_NAME_LOGS         "logs_page.html"
 
+/* configuration PUT RGB query */
+#define KEY_QUERY_MODE              "mode"
+#define VALUE_QUERY_MANUAL          "manual"
+#define VALUE_QUERY_SEQUENCE        "sequence"
+#define VALUE_QUERY_ORIGINAL        "original"
+
+#define RGB_MANUAL_MODE             0
+#define RGB_AUTO_MODE               1
+#define RGB_ORIGINAL_MODE           2
+
 #define MAX_CFG_FILE_SIZE           4096        // 4  * 1024 (1kB)
 #define MAX_HTML_PAGE_SIZE          24576       // 24 * 1024 (24 kB)
 
 static const char* TAG = "http_handler";
 esp_netif_ip_info_t connectionInfo;
 
+typedef struct {
+    uint8_t red;
+    uint8_t green;
+    uint8_t blue;
+} colors_t;
+
 extern void actualizeValue(uint8_t red, uint8_t green, uint8_t blue);
+extern void actualizeMode(uint8_t redMode, uint8_t greenMode, uint8_t blueMode, uint8_t sequenceNo, uint32_t period);
+extern void createSequence(colors_t first, colors_t through, colors_t last);
 
 
 /* Get .html default page */
@@ -330,38 +348,102 @@ esp_err_t http_handlers_getDownload_EventHandler(httpd_req_t *req) {
 
 /* TODO: handler of RGB control */
 esp_err_t http_handlers_postRGB_EventHandler(httpd_req_t *req) {
-    const char* postBuffer[256];
-    size_t      contentLen = req->content_len;
-    uint8_t     red = 0;
-    uint8_t     green = 0;
-    uint8_t     blue = 0;
 
-    if (httpd_req_recv(req, postBuffer, contentLen) > 0) {
-        cJSON *root = cJSON_Parse(postBuffer);
-        cJSON *rgbValues = cJSON_GetObjectItem(root, "rgbValues");
-        red = cJSON_GetObjectItem(rgbValues, "red")->valueint;
-        green = cJSON_GetObjectItem(rgbValues, "green")->valueint;
-        blue = cJSON_GetObjectItem(rgbValues, "blue")->valueint;
-        // if (red!=NULL && green!=NULL && blue!=NULL){
-            httpd_resp_send(req, "Values actualized", sizeof("Values actualized"));
-            actualizeValue(red, green, blue);
-        // }
+    colors_t manualRGB;
+    uint8_t sequenceNo = 0;
+    colors_t originalRGB[3];
+    uint16_t originalPeriod;
+
+    char*       buffer;
+    size_t      bufferLen = httpd_req_get_url_query_len(req);
+    char*       bufferData;
+    size_t      dataLen = req->content_len;
+    bufferData = calloc(MAX_CFG_FILE_SIZE, sizeof(uint8_t));
+    if (bufferLen > 0) {
+        buffer = malloc(bufferLen + 1);
+        memset(buffer, 0, bufferLen + 1);
+        if (httpd_req_get_url_query_str(req, buffer, bufferLen + 1) == ESP_OK) {
+            char key[64];
+            //  example: 192.168.0.10/RGB?mode=manual
+            if (httpd_query_key_value(buffer, KEY_QUERY_MODE, key, 64) == ESP_OK) {
+            
+                /* RECEIVING MANUAL */
+                if (!strcmp(key, VALUE_QUERY_MANUAL)) {
+                    if (httpd_req_recv(req, bufferData, dataLen) > 0) { 
+                        cJSON *root = cJSON_Parse(bufferData);
+                        cJSON *rgbValues = cJSON_GetObjectItem(root, "rgbValues");
+                        manualRGB.red = cJSON_GetObjectItem(rgbValues, "red")->valueint;
+                        manualRGB.green = cJSON_GetObjectItem(rgbValues, "green")->valueint;
+                        manualRGB.blue = cJSON_GetObjectItem(rgbValues, "blue")->valueint;
+                        actualizeValue(manualRGB.red, manualRGB.green, manualRGB.blue);
+                        actualizeMode(RGB_MANUAL_MODE, RGB_MANUAL_MODE, RGB_MANUAL_MODE, 0, 2000);
+                        httpd_resp_send(req, "Values actualized", sizeof("Values actualized"));
+                        
+                    }
+                }
+
+                /* RECEIVING SEQUENCE */
+                else if (!strcmp(key, VALUE_QUERY_SEQUENCE)) {
+                    if (httpd_req_recv(req, bufferData, dataLen) > 0) { 
+                        cJSON *root = cJSON_Parse(bufferData);
+                        cJSON *rgbValues = cJSON_GetObjectItem(root, "sequence");
+                        sequenceNo = cJSON_GetObjectItem(rgbValues, "number")->valueint;
+                        actualizeMode(RGB_AUTO_MODE, RGB_AUTO_MODE, RGB_AUTO_MODE, sequenceNo, 2000);
+                        httpd_resp_send(req, "Mode changed", sizeof("Mode changed"));
+                    }
+                }
+
+                /* RECEIVING ORIGINAL */
+                // TODO!!!!!
+                else if (!strcmp(key, VALUE_QUERY_ORIGINAL)) {
+                    if (httpd_req_recv(req, bufferData, dataLen) > 0) { 
+                        cJSON *root = cJSON_Parse(bufferData);
+                        cJSON *sequence = cJSON_GetObjectItem(root, "sequence");
+                        cJSON *sFirst = cJSON_GetObjectItem(sequence, "first");
+                        originalRGB[0].red = cJSON_GetObjectItem(sFirst, "red")->valueint;
+                        originalRGB[0].green = cJSON_GetObjectItem(sFirst, "green")->valueint;
+                        originalRGB[0].blue = cJSON_GetObjectItem(sFirst, "blue")->valueint;
+
+                        cJSON *sSecond = cJSON_GetObjectItem(sequence, "second");
+                        originalRGB[1].red = cJSON_GetObjectItem(sFirst, "red")->valueint;
+                        originalRGB[1].green = cJSON_GetObjectItem(sFirst, "green")->valueint;
+                        originalRGB[1].blue = cJSON_GetObjectItem(sFirst, "blue")->valueint;
+
+                        cJSON *sThird = cJSON_GetObjectItem(sequence, "third");
+                        originalRGB[2].red = cJSON_GetObjectItem(sFirst, "red")->valueint;
+                        originalRGB[2].green = cJSON_GetObjectItem(sFirst, "green")->valueint;
+                        originalRGB[2].blue = cJSON_GetObjectItem(sFirst, "blue")->valueint;
+
+                        cJSON *sTime = cJSON_GetObjectItem(sequence, "time");
+                        originalPeriod = cJSON_GetObjectItem(sFirst, "period")->valueint;
+
+                        actualizeValue(0, 0, 0);
+                        actualizeMode(RGB_ORIGINAL_MODE, RGB_ORIGINAL_MODE, RGB_ORIGINAL_MODE, 0, 2000);
+                        createSequence(originalRGB[0], originalRGB[1], originalRGB[2]);
+                        httpd_resp_send(req, "Original On", sizeof("Original On"));
+                    }  
+                }
+
+                /* UNKNOWN VALUE */
+                else {
+                    ESP_LOGE(TAG, "Unknown query value");
+                }
+            }
+            else {
+                ESP_LOGE(TAG, "Unknown query key");
+            }
+        }
+        else {
+            ESP_LOGE(TAG, "Query string not found");
+        }
+    }
+    else {
+        ESP_LOGE(TAG, "Buffer Length is 0.");
     }
     
     return ESP_OK;
 }
 
-esp_err_t http_handlers_postRGBSequence_EventHandler(httpd_req_t *req) {
-    // TODO:
-    httpd_resp_send(req, "Values actualized", sizeof("Values actualized"));
-    return ESP_OK;
-}
-
-esp_err_t http_handlers_postRGBOriginal_EventHandler(httpd_req_t *req) {
-    // TODO:
-    httpd_resp_send(req, "Values actualized", sizeof("Values actualized"));
-    return ESP_OK;
-}
 
 esp_err_t http_handlers_postConfiguration_EventHandler(httpd_req_t *req) {
     size_t contentLen = req->content_len;
