@@ -45,7 +45,7 @@ extern "C"{
     /**
      * @brief TODO!
      **/
-    void createSequence(colors_t first, colors_t through, colors_t last);
+    void createSequence(colors_t first, colors_t through, colors_t last, uint32_t period);
 
     /**
      * @brief Main function of the RGB driver, infinity loop!

@@ -25,6 +25,11 @@ uint8_t generalMode = false;
 static uint32_t periodTime;
 static uint8_t seqNo = 0;
 
+// original sequence stats
+static colors_t baseRgbValues[3];
+static uint32_t periodOriginal;
+bool static resetOriginalFlag;
+
 typedef struct {
     ledc_channel_config_t *ledc_channel[3];
     ledc_timer_config_t *ledc_timer;
@@ -57,6 +62,7 @@ void sequentialMode(uint8_t sNo, uint32_t period){
     uint32_t timeDelay = period/255;
 
     if (prevSNo != sNo) {
+        step = 1;
         init = false;
     }
 
@@ -91,6 +97,9 @@ void sequentialMode(uint8_t sNo, uint32_t period){
                         tempBlue--;
                         tempRed++;
                         if (tempBlue == 0 && tempRed == 255) { step = 1; }
+                        break;
+                    default:
+                        step = 1;
                         break;
                 }
             }
@@ -132,6 +141,9 @@ void sequentialMode(uint8_t sNo, uint32_t period){
                         tempBlue++;
                         tempGreen--;
                         if (tempBlue == 255 && tempGreen == 0) { step = 1; }
+                        break;
+                    default:
+                        step = 1;
                         break;
                 }
             }
@@ -176,6 +188,9 @@ void sequentialMode(uint8_t sNo, uint32_t period){
                         tempRed--;
                         if (tempRed == 0) { step = 1; }
                         break;
+                    default:
+                        step = 1;
+                        break;
                 }
             }
 
@@ -217,6 +232,9 @@ void sequentialMode(uint8_t sNo, uint32_t period){
                         tempRed = 255;
                         step = 1;
                         break;
+                    default:
+                        step = 1;
+                        break;
                 }
             }
 
@@ -237,8 +255,131 @@ void sequentialMode(uint8_t sNo, uint32_t period){
     prevSNo = sNo;
 }
 
-void createSequence(colors_t first, colors_t through, colors_t last){
-    printf("DUPA");
+void originalMode(colors_t first, colors_t through, colors_t last, uint32_t period) {
+    
+    static float tempRed;
+    static float tempGreen;
+    static float tempBlue;
+    
+    static colors_t actualColor;
+    static colors_t nextColor;
+
+    static uint8_t step;  /* 1 - first -> second, 2- second -> third, 3 - third -> first*/
+    if (resetOriginalFlag) {
+        step = 1;
+        resetOriginalFlag = false;
+        actualColor = first;
+        nextColor = through;
+    }
+    else {
+        /*  ALGHORITM DESCIPTION : 
+        * In case of different target values of colors in base point the algorithm should calculate value of incrementation by each step. For example in case, where starting point is (0,0,0)
+        * and the second base point is (256,128,64). In this example period is set to 2000ms. In that case values of red should be incremented in 2 seconds from 0 to 256, green from 0 to 128 and blue from 0 to 64.
+        * It is necessery to find lowest value from next base point and calculate value of incrementation for each color.
+        * 
+        * Additionally, wait time should be calculated in order to the smallest value per each step.
+        */
+        uint8_t absRedDiff = abs(actualColor.red - nextColor.red);
+        uint8_t absGreenDiff = abs(actualColor.green - nextColor.green);
+        uint8_t absBlueDiff = abs(actualColor.blue - nextColor.blue);
+        uint8_t lowestVal = (absRedDiff < absGreenDiff) ? (absRedDiff < absBlueDiff ? absRedDiff : absBlueDiff) : (absGreenDiff < absBlueDiff ? absGreenDiff : absBlueDiff);
+        
+        float diffRed = absRedDiff/lowestVal;
+        float diffGreen = absGreenDiff/lowestVal;
+        float diffBlue = absBlueDiff/lowestVal;
+
+        bool isRedReady = false;
+        bool isGreenReady = false;
+        bool isBlueReady = false;
+
+        // red:
+        if (actualColor.red - nextColor.red > 0) {
+            // --
+            tempRed -= diffRed;
+        }
+        else if (actualColor.red - nextColor.red > 0) {
+            // ++
+            tempRed += diffRed;
+        }
+        else {
+            isRedReady = true;
+        }
+
+        // green
+        if (actualColor.red - nextColor.red > 0) {
+            // --
+            tempRed -= diffRed;
+        }
+        else if (actualColor.red - nextColor.red > 0) {
+            // ++
+            tempRed += diffRed;
+        }
+        else {
+            isRedReady = true;
+        }
+
+        // blue
+        if (actualColor.red - nextColor.red > 0) {
+            // --
+            tempRed -= diffRed;
+        }
+        else if (actualColor.red - nextColor.red > 0) {
+            // ++
+            tempRed += diffRed;
+        }
+        else {
+            isRedReady = true;
+        }
+
+        if (isRedReady && isGreenReady && isBlueReady) { 
+            if (step != 3){
+                step++;
+            }
+            else {
+                step = 1;
+            }
+            switch (step){
+                case 1:
+                    actualColor = first;
+                    nextColor = through;
+                    break;
+                case 2:
+                    actualColor = through;
+                    nextColor = last;
+                    break;
+                case 3:
+                    actualColor = last;
+                    nextColor = first;
+                    break;
+            } 
+        }
+        isRedReady = false;
+        isGreenReady = false;
+        isBlueReady = false;
+
+    }
+
+    color[RED].value = tempRed;
+    color[GREEN].value = tempGreen;
+    color[BLUE].value = tempBlue;
+
+    uint32_t startTick = 0;
+    uint32_t sumTicks = 0;
+    uint32_t timeDelay = period/255;
+    startTick = xTaskGetTickCount();
+    do {
+        sumTicks = xTaskGetTickCount() - startTick;
+    } while (10 * sumTicks < timeDelay);
+}
+
+
+void createSequence(colors_t first, colors_t through, colors_t last, uint32_t period){
+    baseRgbValues[0] = first;
+    baseRgbValues[1] = through;
+    baseRgbValues[2] = last;
+    periodOriginal = period;
+    // in order to reload sequence.
+    resetOriginalFlag = true;
 }
 
 void rgbController_main(void *pvParameters) {
