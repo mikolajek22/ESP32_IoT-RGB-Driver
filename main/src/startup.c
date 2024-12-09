@@ -2,6 +2,9 @@
 #include "fs.h"
 #include "ctype.h"
 
+#include "time.h"
+#include <sys/time.h>
+
 #define CONFIG_ESP_WIFI_SSID        "Zyxel_96C1"        
 #define CONFIG_ESP_WIFI_PASSWORD    "M7KNTYLG7K"  
 
@@ -127,6 +130,46 @@ esp_err_t startup_ReadConfiguration() {
     return ESP_OK;
 }
 
+esp_err_t startup_LoggingConfiguration() {
+    return ESP_OK;
+}
+
+void getCurrentTime(char* buffer, size_t buffer_size);
+
+int custom_vprintf(const char *fmt, va_list args) {
+    char timeBuffer[64];
+    char logBuffer[256];
+    getCurrentTime(timeBuffer, sizeof(timeBuffer));
+
+    int prefixBufferLen = snprintf(logBuffer, sizeof(logBuffer), "[%s]",timeBuffer);
+    if (prefixBufferLen < 0 || prefixBufferLen > sizeof(logBuffer)) {
+        return - 1;
+    }
+    // create complain message and save to buffor
+    int messageLen = vsnprintf(logBuffer + prefixBufferLen, sizeof(logBuffer) - prefixBufferLen, fmt, args);
+    if (messageLen < 0 || messageLen + prefixBufferLen > sizeof(logBuffer)) {
+        return -1;
+    }
+    return printf("%s", logBuffer);
+}
+
+void getCurrentTime(char* buffer, size_t buffer_size) {
+    time_t now;
+    struct tm timeinfo;
+
+    time(&now);
+    // Set timezone to Polish Standard Time
+    setenv("TZ", "CEST-1CET,M3.2.0/2:00:00,M11.1.0/2:00:00", 1);
+    tzset();
+
+    localtime_r(&now, &timeinfo);
+    if (strftime(buffer, buffer_size, "%Y-%m-%d %H:%M:%S", &timeinfo) == 0) {
+        ESP_LOGE(TAG, "Failed to format date/time");
+    } else {
+        ESP_LOGI(TAG, "Current date/time in Poland: %s", buffer);
+    }
+
+}
 
 int paresAddrStr2Int(uint8_t* addr, const char* buffer){
     uint8_t offset = 0;
