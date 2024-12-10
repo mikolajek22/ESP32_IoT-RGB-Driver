@@ -1,0 +1,1 @@
+void logs_customizeLogs();

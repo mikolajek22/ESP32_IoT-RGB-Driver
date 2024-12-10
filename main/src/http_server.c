@@ -4,6 +4,8 @@
 #include "cJSON.h"
 #include "startup.h"
 #include "http_handlers.h"
+#include "lwip/dns.h"
+#include "sntp_sync.h"
 
 /* Flags */
 #define WIFI_CONNECTED_BIT          BIT0
@@ -47,6 +49,10 @@ void http_server_main(void){
             }
             nexTimeWait = TIME_WAIT_TO_CONN_BASE;
             connectionSet = true;
+            ip_addr_t dns_primary;
+            IP_ADDR4(&dns_primary, 8, 8, 8, 8); // Google DNS
+            dns_setserver(0, &dns_primary);
+            sntp_sync_init();
         }
         uint8_t serverRet = 0;
 

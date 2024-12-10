@@ -28,7 +28,7 @@
 #include "http_server.h"
 
 #include "startup.h"
-
+#include "logs.h"
 #define RED_LED_PIN         13
 #define GREEN_LED_PIN       12
 #define BLUE_LED_PIN        14
@@ -88,6 +88,7 @@ void app_main()
     #define LEDC_MODE               LEDC_LOW_SPEED_MODE
     #define LEDC_DUTY               255
     #define LEDC_CHANNEL            LEDC_CHANNEL_0
+    
     /* little file system initialization */
     if (ESP_OK == fs_mount()) {
         ESP_LOGI(TAG, "LFS mounted successfully");
@@ -96,8 +97,11 @@ void app_main()
         init_hw();
         startup_ReadConfiguration();
         /* simultanous tasks creation */
+        /* TODO: init of wifi should be called here, not in the separated thread. After this logs should be customized*/
         xTaskCreatePinnedToCore(http_server_main,"http_server",16384,NULL,10,&taskWebServer,1);
         xTaskCreatePinnedToCore(rgbController_main,"color_regulator",16384, &rgbParams,5,&taskRgbController,1);
+        vTaskDelay(1000);
+        logs_customizeLogs();
     } 
     else {
         ESP_LOGE(TAG, "Failed to mount LFS");

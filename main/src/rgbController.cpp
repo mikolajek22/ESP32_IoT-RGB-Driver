@@ -421,7 +421,7 @@ void rgbController_main(void *pvParameters) {
         ledc_update_duty(controllerCfg->ledc_timer->speed_mode, controllerCfg->ledc_channel[BLUE]->channel);
         // printf("twoja statra to kopara\n");
         ESP_LOGW("RGB","written %d, %d, %d",color[RED].value,color[GREEN].value,color[BLUE].value);
-        // vTaskDelay(500);
+        vTaskDelay(200);
     }
     
 }
