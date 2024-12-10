@@ -3,15 +3,14 @@
 #include <stdlib.h>
 #include "sntp_sync.h"
 
+
 int vprintf_custom(const char* fmt, va_list args){
+
     char timeStamp[64] = {0};
-    char fixedLog[256+64] = {0};
+    char fixedLog[256 + sizeof(timeStamp)] = {0};
     sntp_sync_ObtainActualTime(timeStamp);
-    sprintf(fixedLog, timeStamp);
-    // sprintf(fixedLog + sizeof(timeStamp), fmt);
-    printf("%s", timeStamp);
-    return vprintf(fmt, args);
-    
+    snprintf(fixedLog, sizeof(fixedLog), "%s - %s", timeStamp, fmt);
+    return vprintf(fixedLog, args);
 }
 
 void logs_customizeLogs(){
