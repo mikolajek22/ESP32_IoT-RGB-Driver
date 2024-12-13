@@ -42,6 +42,19 @@ typedef struct {
     uint8_t blue;
 } colors_t;
 
+typedef struct {
+    httpd_handle_t hd;
+    int fd;
+    bool isActive
+} ws_info_t;
+
+static ws_info_t wsInfo = {
+    .hd = NULL,
+    .fd = 0,
+    .isActive = false
+};
+
+
 extern void actualizeValue(uint8_t red, uint8_t green, uint8_t blue);
 extern void actualizeMode(uint8_t redMode, uint8_t greenMode, uint8_t blueMode, uint8_t sequenceNo, uint32_t period);
 extern void createSequence(colors_t first, colors_t through, colors_t last);
@@ -53,6 +66,7 @@ esp_err_t http_handlers_getStartPage_EventHandler(httpd_req_t *req) {
     uint8_t     fileID;
     size_t      readBytes;
     uint16_t    totalReadBytes = 0;
+    wsInfo.isActive = false;
     if (fs_findID(&fileID) == ESP_OK) { 
         pageText = malloc(MAX_HTML_PAGE_SIZE);
         if (pageText == NULL) {
@@ -66,7 +80,7 @@ esp_err_t http_handlers_getStartPage_EventHandler(httpd_req_t *req) {
                 } while (readBytes == READ_SIZE);
 
                 if (totalReadBytes > 0) {
-                    ESP_LOGI(TAG, "File to send: \nFile name: %s \nFile size: %d bytes", HTML_PAGE_NAME_MAIN, totalReadBytes);
+                    ESP_LOGI(TAG, "File to send: File name: %s nFile size: %d bytes", HTML_PAGE_NAME_MAIN, totalReadBytes);
                     if (httpd_resp_send(req, pageText, totalReadBytes) == ESP_OK) {
                         ESP_LOGI(TAG, "%s page has been sent", HTML_PAGE_NAME_MAIN);
                     }
@@ -99,6 +113,7 @@ esp_err_t  http_handlers_getPage_EventHandler(httpd_req_t *req) {
     size_t      readBytes;
     uint16_t    totalReadBytes = 0;
     size_t      bufferLen = httpd_req_get_url_query_len(req);
+    wsInfo.isActive = false;
     
     if (bufferLen > 0) {
         buffer = malloc(bufferLen+1);
@@ -122,7 +137,7 @@ esp_err_t  http_handlers_getPage_EventHandler(httpd_req_t *req) {
                                     totalReadBytes += readBytes;
                                 } while (readBytes == READ_SIZE);
                                 if (totalReadBytes > 0) {
-                                    ESP_LOGI(TAG, "File to send: \nFile name: %s \nFile size: %d bytes", HTML_PAGE_NAME_MAIN, totalReadBytes);
+                                    ESP_LOGI(TAG, "File to send: File name: %s File size: %d bytes", HTML_PAGE_NAME_MAIN, totalReadBytes);
                                     if (httpd_resp_send(req, pageText, totalReadBytes) == ESP_OK) {
                                         ESP_LOGI(TAG, "%s page has been sent", HTML_PAGE_NAME_MAIN);
                                     }
@@ -160,7 +175,7 @@ esp_err_t  http_handlers_getPage_EventHandler(httpd_req_t *req) {
                                     totalReadBytes += readBytes;
                                 } while (readBytes == READ_SIZE);
                                 if (totalReadBytes > 0) {
-                                    ESP_LOGI(TAG, "File to send: \nFile name: %s \nFile size: %d bytes", HTML_PAGE_NAME_CONFIG, totalReadBytes);
+                                    ESP_LOGI(TAG, "File to send: File name: %s File size: %d bytes", HTML_PAGE_NAME_CONFIG, totalReadBytes);
                                     if (httpd_resp_send(req, pageText, totalReadBytes) == ESP_OK) {
                                         ESP_LOGI(TAG, "%s page has been sent", HTML_PAGE_NAME_CONFIG);
                                     }
@@ -198,7 +213,7 @@ esp_err_t  http_handlers_getPage_EventHandler(httpd_req_t *req) {
                                     totalReadBytes += readBytes;
                                 } while (readBytes == READ_SIZE);
                                 if (totalReadBytes > 0) {
-                                    ESP_LOGI(TAG, "File to send: \nFile name: %s \nFile size: %d bytes", HTML_PAGE_NAME_CONTROL, totalReadBytes);
+                                    ESP_LOGI(TAG, "File to send: File name: %s File size: %d bytes", HTML_PAGE_NAME_CONTROL, totalReadBytes);
                                     if (httpd_resp_send(req, pageText, totalReadBytes) == ESP_OK) {
                                         ESP_LOGI(TAG, "%s page has been sent", HTML_PAGE_NAME_CONTROL);
                                     }
@@ -236,7 +251,7 @@ esp_err_t  http_handlers_getPage_EventHandler(httpd_req_t *req) {
                                     totalReadBytes += readBytes;
                                 } while (readBytes == READ_SIZE);
                                 if (totalReadBytes > 0) {
-                                    ESP_LOGI(TAG, "File to send: \nFile name: %s \nFile size: %d bytes", HTML_PAGE_NAME_LOGS, totalReadBytes);
+                                    ESP_LOGI(TAG, "File to send: File name: %s File size: %d bytes", HTML_PAGE_NAME_LOGS, totalReadBytes);
                                     if (httpd_resp_send(req, pageText, totalReadBytes) == ESP_OK) {
                                         ESP_LOGI(TAG, "%s page has been sent", HTML_PAGE_NAME_LOGS);
                                     }
@@ -591,4 +606,48 @@ esp_err_t http_handlers_postConfiguration_EventHandler(httpd_req_t *req) {
     }
     free(querryContent);
     return ESP_OK;
+}
+
+
+
+void http_handlers_sendOverWS(const char* buffer){
+
+    if (!wsInfo.isActive || !wsInfo.hd) {
+        return;
+    }
+    else {
+        httpd_ws_frame_t wk_pkt = {
+            .type = HTTPD_WS_TYPE_TEXT,
+            .len = strlen(buffer),
+            .payload = (uint8_t*)buffer
+        };
+        httpd_ws_send_frame_async(wsInfo.hd, wsInfo.fd, &wk_pkt);
+    }
+    
+}
+
+esp_err_t http_handlers_websocketEnable_EventHandler(httpd_req_t *req) {
+
+    if (req->method == HTTP_GET) {
+        ESP_LOGI(TAG, "Handshake done, the new connection was opened");
+        wsInfo.hd = req->handle;
+        wsInfo.fd = httpd_req_to_sockfd(req);
+        wsInfo.isActive = true;
+        return ESP_OK;
+    }
+    else {
+        httpd_ws_frame_t ws_pkt;
+        memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
+
+        ws_pkt.type = HTTPD_WS_TYPE_TEXT;
+        ws_pkt.payload = NULL;
+
+        esp_err_t ret = httpd_ws_recv_frame(req, &ws_pkt, 0);
+        // WS Connection close
+        if (ws_pkt.type == HTTPD_WS_TYPE_CLOSE) {
+            ESP_LOGI(TAG, "Client closed WebSocket connection");
+            wsInfo.isActive = false;
+        }
+        return ESP_OK;
+    }
 }

@@ -6,11 +6,8 @@
 #define GREEN   1
 #define BLUE    2
 
-
-
 #define DUTY_RESOLUTION     2^8
 #define MAX_DUTY_VAL        2*DUTY_RESOLUTION
-
 
 Color redColorHandler;
 Color greenColorHandler;

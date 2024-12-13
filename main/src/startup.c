@@ -2,8 +2,6 @@
 #include "fs.h"
 #include "ctype.h"
 
-
-
 #define CONFIG_ESP_WIFI_SSID        "Zyxel_96C1"        
 #define CONFIG_ESP_WIFI_PASSWORD    "M7KNTYLG7K"  
 
@@ -150,4 +148,3 @@ int paresAddrStr2Int(uint8_t* addr, const char* buffer){
     *addr = (uint8_t*)value;
     return offset + 1;
 }
-

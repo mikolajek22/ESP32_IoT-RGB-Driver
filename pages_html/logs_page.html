@@ -177,27 +177,25 @@
             <div id="content">
                 <h2 style="margin-left: 10px;">Console Output</h2>
                 <div id="console">
-                    <span>Getting logs...</span>
+                    <span id="log">Getting logs...</span><br>
                 </div>
             </div>
+
             <script>
-                async function getLogs(){
-                    try {
-                        const response = await fetch('/logging',{
-                        method:'GET'
-                        });
-                        if (response.ok) {
-                            const logs = response.text();
-                            document.getElementById('console').innerHTML = logs;
-                        }
-                    }
-                    catch(error){
-                        console.error('error getting logs', error);
-                    }
-                    
-                }
-                setInterval(getLogs, 2000);
+
+                let ws;
+                const wsUrl = `ws://${window.location.hostname}:80/ws`;
+                
                 function changePage(page) {
+                    if (ws && ws.readyState === WebSocket.OPEN) {
+                        ws.close();
+                        const ms = 100;
+                        const start = Date.now();
+                        // wait for the server response.
+                        while (Date.now() - start < ms) { }
+                    } else {
+                        console.warn("WebSocket nie jest otwarty.");
+                    }
                     switch(page) {
                         case 'main': window.location.href = '/get?page=main'; break;
                         case 'config': window.location.href = '/get?page=config'; break;
@@ -205,6 +203,38 @@
                         case 'logs': window.location.href = '/get?page=logs'; break;
                     }
                 }
+
+                function startWS() {
+                    ws = new WebSocket(wsUrl);
+                    ws.onopen = function() {
+                        console.log("Websocket has been opened");
+                    };
+                    ws.onmessage = function(event) {
+                        console.log("Message received from server:", event.data);
+                        addLog(event.data);
+                    };
+                    ws.onerror = function(error) {
+                        console.error("WebSocket error:", error);
+                    };
+                    ws.onclose = function() {
+                        console.warn("WebSocket connection closed.");
+                    };
+                }
+                
+                function addLog(message) {
+                    const consoleElement = document.getElementById('console');
+
+                    const newLog = document.createElement('span');
+                    newLog.textContent = message;
+                    const lineBreak = document.createElement('br');
+
+                    consoleElement.appendChild(newLog);
+                    consoleElement.appendChild(lineBreak);
+                    consoleElement.scrollTop = consoleElement.scrollHeight;
+                }
+                
+                // Enable WS after opening this page.
+                window.onload = startWS;
             </script>
         </div>
     </body>

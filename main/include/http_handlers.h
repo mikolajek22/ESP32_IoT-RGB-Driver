@@ -37,3 +37,14 @@ extern esp_err_t http_handlers_postRGB_EventHandler(httpd_req_t *req);
  * @brief Changing settings.json file. It handles upload of configuration file to the server (esp32), changing configuration file by typing information directly on the webserver. Reboot request handler
  **/
 extern esp_err_t http_handlers_postConfiguration_EventHandler(httpd_req_t *req);
+
+/**
+ * @brief Called after client send enable of websocket. It is used to send logs in real time to the client.
+ **/
+extern esp_err_t http_handlers_websocketEnable_EventHandler(httpd_req_t *req);
+
+/**
+ * @brief Voided while logging function is called. Responsible for sending data over web socket to the (loggings).
+ * @param buffer - data to be send over web socket
+ **/
+extern void http_handlers_sendOverWS(const char* buffer);

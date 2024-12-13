@@ -179,6 +179,7 @@ esp_err_t Wifi_SetupConnection(void) {
     return (bits & WIFI_CONNECTED_BIT) ? ESP_OK : ESP_FAIL;
 }
 
+
 /* Get config */
 httpd_uri_t get_page = {
     .uri = "/get",
@@ -217,9 +218,17 @@ httpd_uri_t uri_post_configuration = {
     .handler = http_handlers_postConfiguration_EventHandler,
     .user_ctx = NULL };
 
+httpd_uri_t uri_get_logs = {
+    .uri = "/ws",
+    .method = HTTP_GET,
+    .handler = http_handlers_websocketEnable_EventHandler,
+    .user_ctx = NULL,
+    .is_websocket = true };
+
 httpd_handle_t setup_server(void)
 {   
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
+    config.max_uri_handlers = 16;
     httpd_handle_t server = NULL;
 
     if (httpd_start(&server, &config) == ESP_OK)
@@ -228,8 +237,9 @@ httpd_handle_t setup_server(void)
         httpd_register_uri_handler(server, &get_page);
         httpd_register_uri_handler(server, &get_info);
         httpd_register_uri_handler(server, &uri_post_configuration);
-        httpd_register_uri_handler(server, &uri_put_rgb);              //ok - to be modified with all rgb handlers included ori and seq. This will allow to reduce handlers.  
-        httpd_register_uri_handler(server, &get_download);          //ok
+        httpd_register_uri_handler(server, &uri_put_rgb);
+        httpd_register_uri_handler(server, &get_download);
+        httpd_register_uri_handler(server, &uri_get_logs);
     }
     return server;
 }

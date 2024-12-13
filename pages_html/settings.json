@@ -4,11 +4,11 @@
         "date":"05/11/2024",
         "network":
         {
-            "wifiName":"Zyxel_96C1",
-            "wifiPassword":"M7KNTYLG7K",
-            "ipAddress":"192.168.1.220",
-            "defaultGateway":"192.168.1.220",
-            "netmask":"255.255.255.0",
+            "wifiName":"iPhone (Mikołaj)",
+            "wifiPassword":"dupa12345",
+            "ipAddress":"172.20.10.11",
+            "defaultGateway":"172.20.10.1",
+            "netmask":"255.255.255.240",
             "staticIP":"true",
             "STA/AP":"STA"
         }
