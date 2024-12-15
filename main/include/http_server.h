@@ -14,3 +14,5 @@
  * It should be called as simultanous task.
  **/
 void http_server_main(void);
+esp_err_t http_server_connect();
+esp_err_t http_server_init();

@@ -29,6 +29,7 @@
 
 #include "startup.h"
 #include "logs.h"
+#include "sntp_sync.h"
 #define RED_LED_PIN         13
 #define GREEN_LED_PIN       12
 #define BLUE_LED_PIN        14
@@ -92,16 +93,19 @@ void app_main()
     /* little file system initialization */
     if (ESP_OK == fs_mount()) {
         ESP_LOGI(TAG, "LFS mounted successfully");
-        
         /* timers initialization */
         init_hw();
         startup_ReadConfiguration();
+        if (ESP_OK == http_server_init()) {
+            if (ESP_OK == http_server_connect()) {
+                sntp_sync_init();
+                logs_customizeLogs();
+            }
+        }
         /* simultanous tasks creation */
         /* TODO: init of wifi should be called here, not in the separated thread. After this logs should be customized*/
-        xTaskCreatePinnedToCore(http_server_main,"http_server",16384,NULL,10,&taskWebServer,1);
+        // xTaskCreatePinnedToCore(http_server_main,"http_server",16384,NULL,10,&taskWebServer,1);
         xTaskCreatePinnedToCore(rgbController_main,"color_regulator",16384, &rgbParams,5,&taskRgbController,1);
-        vTaskDelay(1000);
-        logs_customizeLogs();
     } 
     else {
         ESP_LOGE(TAG, "Failed to mount LFS");
