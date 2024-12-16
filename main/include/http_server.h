@@ -10,9 +10,11 @@
 #include "esp_log.h"
 
 /**
- * @brief This function is responsible for setting up both wifi connection and set up a http server. 
- * It should be called as simultanous task.
+ * @brief Initialize netif stack, create handlers for wifi events. Set parameters for the network connection.
  **/
-void http_server_main(void);
-esp_err_t http_server_connect();
 esp_err_t http_server_init();
+
+/**
+ * @brief Connect to the wifi after initialization.
+ **/
+esp_err_t http_server_connect();

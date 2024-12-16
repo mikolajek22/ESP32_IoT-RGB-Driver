@@ -42,13 +42,7 @@ typedef struct {
     uint8_t blue;
 } colors_t;
 
-typedef struct {
-    httpd_handle_t hd;
-    int fd;
-    bool isActive
-} ws_info_t;
-
-static ws_info_t wsInfo = {
+ws_info_t wsInfo = {
     .hd = NULL,
     .fd = 0,
     .isActive = false
@@ -621,7 +615,9 @@ void http_handlers_sendOverWS(const char* buffer){
             .len = strlen(buffer),
             .payload = (uint8_t*)buffer
         };
-        httpd_ws_send_frame_async(wsInfo.hd, wsInfo.fd, &wk_pkt);
+        if (ESP_OK != httpd_ws_send_frame_async(wsInfo.hd, wsInfo.fd, &wk_pkt)) {
+            wsInfo.isActive = false;
+        }
     }
     
 }

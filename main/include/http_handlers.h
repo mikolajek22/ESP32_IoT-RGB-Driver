@@ -9,7 +9,13 @@
 #include "esp_event.h"
 #include "esp_log.h"
 extern esp_netif_ip_info_t connectionInfo;
+typedef struct {
+    httpd_handle_t hd;
+    int fd;
+    bool isActive;
+} ws_info_t;
 
+extern ws_info_t wsInfo;
 /**
  * @brief This handler will be called after opening the web server via typing the ip address of the module.
  **/

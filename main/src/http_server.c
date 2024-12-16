@@ -18,40 +18,37 @@
 
 #define TAG_WIFI_MODULE             0
 #define TAG_HTTP_SERVER             1
+#define WIFI_MODE                   "WIFI_STA_DEF"
 static const char *TAG[2] = {"WIFI_MODULE", "HTTP_SERVER"};
 
-
 static EventGroupHandle_t wifiEventGroup;
-static int retNum = 0;
 
 static void Wifi_EventHandler(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data);
 esp_err_t Wifi_SetupConnection(void);
 
 httpd_handle_t setup_server(void);
 extern esp_netif_ip_info_t connectionInfo;
-static esp_event_handler_instance_t instanceAnyId;
-static esp_event_handler_instance_t instanceGotIp;
-
-static httpd_config_t config = HTTPD_DEFAULT_CONFIG();
-static httpd_handle_t server = NULL;
+static bool serverSet = false;
 
 esp_err_t http_server_init() {
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
     esp_netif_create_default_wifi_sta();
+
+    // Write readed configuration from settings.json.
     esp_netif_ip_info_t ip_info;
+    esp_netif_t *netif = esp_netif_get_handle_from_ifkey(WIFI_MODE);
     IP4_ADDR(&ip_info.ip, defaultCfg.ipAddr[0], defaultCfg.ipAddr[1], defaultCfg.ipAddr[2], defaultCfg.ipAddr[3]);
     IP4_ADDR(&ip_info.netmask, defaultCfg.netmask[0], defaultCfg.netmask[1], defaultCfg.netmask[2], defaultCfg.netmask[3]);
     IP4_ADDR(&ip_info.gw, defaultCfg.defaultGw[0], defaultCfg.defaultGw[1], defaultCfg.defaultGw[2], defaultCfg.defaultGw[3]);
-    esp_netif_t *netif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
     esp_netif_dhcpc_stop(netif);
     esp_netif_set_ip_info(netif, &ip_info);
 
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
 
-    
-
+    esp_event_handler_instance_t instanceAnyId;
+    esp_event_handler_instance_t instanceGotIp;
     ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT,
                                                         ESP_EVENT_ANY_ID,
                                                         &Wifi_EventHandler,
@@ -64,65 +61,68 @@ esp_err_t http_server_init() {
                                                         &instanceGotIp));
     return ESP_OK;
 }
-static bool connectionSet = false;
-static bool serverSet = false;
+
 esp_err_t http_server_connect() {
-    uint16_t nexTimeWait = TIME_WAIT_TO_CONN_BASE;
-    /* set up wifi connection */
-            Wifi_SetupConnection();
-            ip_addr_t dns_primary;
-            IP_ADDR4(&dns_primary, 8, 8, 8, 8); // Google DNS
-            dns_setserver(0, &dns_primary);
-
-
-    return ESP_OK;
-}
-
-void http_server_main(void) {
-    wifi_ap_record_t wifiRecord;
-    while (true) {
-        vTaskDelay(1000 / portTICK_PERIOD_MS); // Opóźnienie pętli
+    /* wifi connect */
+    if (ESP_OK == Wifi_SetupConnection()) {
+        ip_addr_t dns_primary;
+        IP_ADDR4(&dns_primary, 8, 8, 8, 8); // Google DNS
+        dns_setserver(0, &dns_primary);
+        return ESP_OK;
     }
+    else {
+        return ESP_FAIL;
+    }  
 }
 
 /* WiFi status handler */
 static void Wifi_EventHandler(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data) {
-    printf("wifi event...\n");
+    static uint16_t nexTimeWait;
     if (event_base == WIFI_EVENT) {
         if (event_id == WIFI_EVENT_STA_START) {
-            esp_wifi_connect(); // Rozpocznij próbę połączenia
+            nexTimeWait = 0;
+            esp_wifi_connect(); 
         } 
         else if (event_id == WIFI_EVENT_STA_DISCONNECTED) {
-            // connectionSet = false;
-            // ESP_LOGW(TAG[TAG_WIFI_MODULE], "Wi-Fi disconnected. Reconnecting...");
-            vTaskDelay(1000 / portTICK_PERIOD_MS); // Odczekaj przed ponownym łączeniem
-            // esp_wifi_connect(); // Ponów próbę połączenia
-            ESP_LOGW("WIFI_MODULE", "Wi-Fi disconnected. Reconnecting...");
-            connectionSet = false;
-
-            // if (serverSet) {
-            //     ESP_LOGI("HTTP", "Stopping HTTP server...");
-            //     httpd_stop(&server);
-            //     serverSet = false;
-            // }
-
+            if(nexTimeWait != 0) {   
+                ESP_LOGW(TAG[TAG_WIFI_MODULE], "Wi-Fi disconnected. Reconnecting in %d seconds", nexTimeWait / 1000);
+                vTaskDelay(nexTimeWait / portTICK_PERIOD_MS);
+            }
+            /* retry to connect after set time (eacnh retry increment delay by 5 seconds (untill 30 seconds))*/
+            if (nexTimeWait < TIME_WAIT_TO_CONN_MAX) {
+                nexTimeWait += TIME_WAIT_TO_CONN_BASE;
+            }
             esp_wifi_connect();
         }
-    } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
-        connectionSet = true; // Ustaw flagę połączenia
+        else if (event_id == WIFI_EVENT_STA_BEACON_TIMEOUT) {
+            wsInfo.isActive = false; // if conn is lost - disable WS socket (logging) send.
+            vTaskDelay(100 / portTICK_PERIOD_MS);
+            ESP_LOGE(TAG[TAG_WIFI_MODULE], "Wi-Fi connection error");
+        }
+        
+        else {
+            printf("WiFi event: %ld", event_id);
+        }
+    }
+
+    else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
         ip_event_got_ip_t *event = (ip_event_got_ip_t *)event_data;
         ESP_LOGI(TAG[TAG_WIFI_MODULE], "Got IP: " IPSTR, IP2STR(&event->ip_info.ip));
         connectionInfo = event->ip_info;
-        retNum = 0;
+
         if (!serverSet) {
-            ESP_LOGI("HTTP", "Starting HTTP server...");
             if (setup_server() != NULL) {
                 serverSet = true;
+                ESP_LOGI(TAG[TAG_HTTP_SERVER], "Succeed to start HTTP server");
             } else {
-                ESP_LOGE("HTTP", "Failed to start HTTP server.");
+                ESP_LOGE(TAG[TAG_HTTP_SERVER], "Failed to start HTTP server.");
             }
         }
+        nexTimeWait = 0;
         xEventGroupSetBits(wifiEventGroup, WIFI_CONNECTED_BIT);
+    }
+    else if (event_base == IP_EVENT){
+       printf("IP event: %ld", event_id);
     }
 }
 
@@ -143,8 +143,6 @@ esp_err_t Wifi_SetupConnection(void) {
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifiConfig));
     ESP_ERROR_CHECK(esp_wifi_start());
 
-    ESP_LOGI(TAG[TAG_WIFI_MODULE], "wifi_init_sta finished.");
-
     /* Wait until flag changed - fail or connected */
     EventBits_t bits = xEventGroupWaitBits(wifiEventGroup,
                                            WIFI_CONNECTED_BIT | WIFI_FAIL_BIT,
@@ -153,17 +151,16 @@ esp_err_t Wifi_SetupConnection(void) {
                                            portMAX_DELAY);
 
     if (bits & WIFI_CONNECTED_BIT) {
-        ESP_LOGI(TAG[TAG_WIFI_MODULE], "connected to ap SSID:%s password:%s",
+        ESP_LOGI(TAG[TAG_WIFI_MODULE], "Connected to ap SSID:%s password:%s",
                  defaultCfg.wifiName, defaultCfg.wifiPassword);
     }
     else if (bits & WIFI_FAIL_BIT) {
-        ESP_LOGI(TAG[TAG_WIFI_MODULE], "Failed to connect to SSID:%s, password:%s",
+        ESP_LOGE(TAG[TAG_WIFI_MODULE], "Failed to connect to SSID:%s, password:%s",
                  defaultCfg.wifiName, defaultCfg.wifiPassword);
     }
     else {
-        ESP_LOGE(TAG[TAG_WIFI_MODULE], "UNEXPECTED EVENT");
+        ESP_LOGW(TAG[TAG_WIFI_MODULE], "UNEXPECTED EVENT");
     }
-    // vEventGroupDelete(wifiEventGroup);
     return (bits & WIFI_CONNECTED_BIT) ? ESP_OK : ESP_FAIL;
 }
 
@@ -215,9 +212,9 @@ httpd_uri_t uri_get_logs = {
 
 httpd_handle_t setup_server(void)
 {   
-    
+    httpd_config_t config = HTTPD_DEFAULT_CONFIG();
+    httpd_handle_t server = NULL;
     config.max_uri_handlers = 16;
-    
 
     if (httpd_start(&server, &config) == ESP_OK)
     {
