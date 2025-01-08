@@ -9,6 +9,7 @@ last update: 04.10.2024
 -----------------------------------*/
 
 #include "fs.h"
+#include "freertos/FreeRTOS.h"
 
 #define FILE_OPENED             1
 #define FILE_CLOSED             0
@@ -29,32 +30,41 @@ typedef struct {
 }fileID;
 
 static fileID arrFiles[6];
+static SemaphoreHandle_t fileMutex;
 
 esp_err_t fs_openFile(uint8_t fID, char* fName, char* permission) {
+    xSemaphoreTake(fileMutex, pdMS_TO_TICKS(500));
+    esp_err_t ret;
     char fileName[255] = "/littlefs/";
     strcat(fileName,fName);
     if (arrFiles[fID].open == FILE_CLOSED){
         arrFiles[fID].file = fopen(fileName, permission);
         arrFiles[fID].open = FILE_OPENED;
-        ESP_LOGI(LOG_TAG, "File opened!");
-        return ESP_OK;
+        // ESP_LOGI(LOG_TAG, "File opened!");
+        ret = ESP_OK;
     }
     else {
-        ESP_LOGE(LOG_TAG, "File opening error - file already opened!");
-        return ESP_FAIL;
+        // ESP_LOGE(LOG_TAG, "File opening error - file already opened!");
+        ret = ESP_FAIL;
     }
+    xSemaphoreGive(fileMutex);
+    return ret;
 }
 esp_err_t fs_closeFile(uint8_t fID) {
+    xSemaphoreTake(fileMutex, pdMS_TO_TICKS(500));
+    esp_err_t ret;
     if (arrFiles[fID].open == FILE_OPENED){
         fclose(arrFiles[fID].file);
         arrFiles[fID].open = FILE_CLOSED;
-        ESP_LOGI(LOG_TAG, "File closed!");
-        return ESP_OK;
+        // ESP_LOGI(LOG_TAG, "File closed!");
+        ret = ESP_OK;
     }
     else {
-        ESP_LOGE(LOG_TAG, "File already closed");
-        return ESP_FAIL;
+        // ESP_LOGE(LOG_TAG, "File already closed");
+        ret = ESP_FAIL;
     }
+    xSemaphoreGive(fileMutex);
+    return ret;
 }
 
 // Mounting file sys
@@ -63,6 +73,7 @@ esp_err_t fs_mount(void){
     esp_err_t ret = esp_vfs_littlefs_register(&conf);
 
     if (ret == ESP_OK){
+        fileMutex = xSemaphoreCreateMutex();
         ESP_LOGI(LOG_TAG, "Mounting Completed");
     } 
     else if (ret == ESP_ERR_NOT_FOUND){
@@ -75,38 +86,49 @@ esp_err_t fs_mount(void){
 }
 
 size_t fs_readFile(uint8_t fID, char* fName, char* buffer, size_t offest){
+    xSemaphoreTake(fileMutex, pdMS_TO_TICKS(500));
+    size_t ret;
     size_t readBytes;
     if (arrFiles[fID].file != NULL){
         readBytes = fread(buffer, 1, READ_SIZE, arrFiles[fID].file);
-        return readBytes;
+        ret = readBytes;
     }
     else {
-        ESP_LOGE(LOG_TAG, "File is null!");
-         return ESP_FAIL;
+        // ESP_LOGE(LOG_TAG, "File is null!");
+         ret = ESP_FAIL;
     }
+    xSemaphoreGive(fileMutex);
+    return ret;
 }
 
 
 size_t fs_writeFile(uint8_t fID, char* fName, char* buffer, uint16_t writeSize){
+    xSemaphoreTake(fileMutex, pdMS_TO_TICKS(500));
+    size_t ret;
     size_t writtenBytes;
     if (arrFiles[fID].file != NULL){
         // arrFiles[fID].open = FILE_OPENED;
         writtenBytes = fwrite(buffer, 1, writeSize, arrFiles[fID].file);
-        return writtenBytes;
+        ret = writtenBytes;
     } 
     else {
-        ESP_LOGE(LOG_TAG, "write file File is null!");
-        return ESP_FAIL;
+        // ESP_LOGE(LOG_TAG, "write file File is null!");
+        ret = ESP_FAIL;
     }
+    xSemaphoreGive(fileMutex);
+    return ret;
 }
 
 esp_err_t fs_rewindFile(uint8_t fID) {
+    xSemaphoreTake(fileMutex, pdMS_TO_TICKS(500));
     ftruncate(fileno(arrFiles[fID].file), 0);   //find file decription, set length to 0. This will cause owerwritting whole file.
     if (arrFiles[fID].file != NULL){ 
         rewind(arrFiles[fID].file);
+        xSemaphoreGive(fileMutex);
         return ESP_OK;
     }
     else {
+        xSemaphoreGive(fileMutex);
         return ESP_FAIL;
     }
 }
@@ -116,12 +138,19 @@ esp_err_t fs_delateFile(uint8_t fID){
 }
 
 esp_err_t fs_findID(uint8_t *fID){
+    xSemaphoreTake(fileMutex, pdMS_TO_TICKS(500));
     for(uint8_t i = 0; i < 6; i++){
         if (arrFiles[i].open == FILE_CLOSED){
             arrFiles[i].id = i;
             *fID = i;
+            xSemaphoreGive(fileMutex);
             return ESP_OK;
         }
     }
+    xSemaphoreGive(fileMutex);
     return ESP_FAIL;
+}
+
+size_t fs_fileSize(uint8_t fID) {
+    return ftell(arrFiles[fID].file);
 }

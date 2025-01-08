@@ -8,6 +8,7 @@
 #define WRITE_PERMISSION        "w"
 #define READ_PERMISSION         "r"
 #define READ_WRITE_PERMISSION   "r+"
+#define APPEND_PERMISSION       "a"
 
 #define READ_SIZE           255
 
@@ -82,3 +83,10 @@ esp_err_t fs_rewindFile(uint8_t fID);
  * @return ESP_OK if file has been delated, ESP_FAIL if failed to delate.
  */
 esp_err_t fs_delateFile(uint8_t fID);
+
+/**
+ * @brief file size
+ * @param ID IN, ID of the file handler
+ * @return size of the file.
+ */
+size_t fs_fileSize(uint8_t fID);

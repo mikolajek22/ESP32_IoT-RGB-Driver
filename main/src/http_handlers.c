@@ -445,10 +445,12 @@ esp_err_t http_handlers_postRGB_EventHandler(httpd_req_t *req) {
         else {
             ESP_LOGE(TAG, "Query string not found");
         }
+        free(buffer);
     }
     else {
         ESP_LOGE(TAG, "Buffer Length is 0.");
     }
+    free(bufferData);
     
     return ESP_OK;
 }
