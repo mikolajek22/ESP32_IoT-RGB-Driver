@@ -2,6 +2,12 @@
 #include "fs.h"
 #include "startup.h"
 
+/* download options */
+
+#define KEY_QUERY_DOWNLOAD          "file"
+#define VALUE_QUERY_LOGS_D          "logs"
+#define VALUE_QUERY_SETIINGS_D      "settings"
+#define LOG_FILE_NAME               "logs.txt"
 #define SETTING_FILE_NAME           "settings.json"
 /* configuration upload query */
 #define KEY_QUERRY_ACTION           "action"
@@ -328,29 +334,102 @@ esp_err_t http_handlers_getInfo_EventHandler(httpd_req_t *req) {
 /* send congiuration file .json to client */
 esp_err_t http_handlers_getDownload_EventHandler(httpd_req_t *req) {
 
-    char*       buffer;
-    uint8_t     fileID;
-    size_t      readBytes;
-    uint16_t    totalReadBytes = 0;
-    if (ESP_OK == fs_findID(&fileID)) {
-        if (ESP_OK == fs_openFile(fileID, SETTING_FILE_NAME, READ_PERMISSION)) {
-            buffer = calloc(4096, sizeof(uint8_t));
-            do {
-                readBytes = fs_readFile(fileID, SETTING_FILE_NAME, buffer + totalReadBytes, totalReadBytes);
-                totalReadBytes += readBytes;
-            } while (readBytes == READ_SIZE);
-            cJSON *root = cJSON_Parse(buffer);
-            if (ESP_OK == fs_closeFile(fileID)) {
-                httpd_resp_set_type(req, "text/plain");
-                httpd_resp_set_hdr(req, "Content-Disposition", "attachment; filename=\"settings.json\"");
-                httpd_resp_send(req, cJSON_Print(root), strlen(cJSON_Print(root)));
-                ESP_LOGI(TAG, "Configuration file has been sent.");
+    
+    char*       bufferQuery;
+    size_t      bufferLen = httpd_req_get_url_query_len(req);
+    if (bufferLen > 0) {
+        bufferQuery = malloc(bufferLen+1);
+        memset(bufferQuery, 0, bufferLen+1);
+        if (httpd_req_get_url_query_str(req, bufferQuery, bufferLen+1) == ESP_OK) {
+            char key[64];
+
+            //  example: 192.168.0.10/get?page=main
+            if (httpd_query_key_value(bufferQuery,KEY_QUERY_DOWNLOAD, key, 64) == ESP_OK) {
+                
+                /* SENDING MAIN PAGE */
+                if (!strcmp(key, VALUE_QUERY_SETIINGS_D)) {
+                    char*       buffer;
+                    uint8_t     fileID;
+                    size_t      readBytes;
+                    uint16_t    totalReadBytes = 0;
+                    if (ESP_OK == fs_findID(&fileID)) {
+                        if (ESP_OK == fs_openFile(fileID, SETTING_FILE_NAME, READ_PERMISSION)) {
+                            buffer = calloc(4096, sizeof(uint8_t));
+                            if (buffer == NULL) {
+                                ESP_LOGE(TAG, "Not enough memory, malloc failed!");
+                            }
+                            else {
+                                do {
+                                    readBytes = fs_readFile(fileID, SETTING_FILE_NAME, buffer + totalReadBytes, totalReadBytes);
+                                    totalReadBytes += readBytes;
+                                } while (readBytes == READ_SIZE);
+                                cJSON *root = cJSON_Parse(buffer);
+                                if (ESP_OK == fs_closeFile(fileID)) {
+                                    httpd_resp_set_type(req, "text/plain");
+                                    httpd_resp_set_hdr(req, "Content-Disposition", "attachment; filename=\"settings.json\"");
+                                    httpd_resp_send(req, cJSON_Print(root), strlen(cJSON_Print(root)));
+                                    ESP_LOGI(TAG, "Configuration file has been sent.");
+                                }
+                                else {
+                                    ESP_LOGE(TAG, "Error while closing file.");
+                                }
+                                free(buffer);
+                            }  
+                        }
+                        else {
+                            ESP_LOGE(TAG,"File opening error");
+                        }
+                    }
+                    else {
+                        ESP_LOGE(TAG,"no free file handlers");
+                    }
+                }
+                else if (!strcmp(key, VALUE_QUERY_LOGS_D)) {
+                    char*       buffer;
+                    uint8_t     fileID;
+                    size_t      readBytes;
+                    uint16_t    totalReadBytes = 0;
+                    if (ESP_OK == fs_findID(&fileID)) {
+                        if (ESP_OK == fs_openFile(fileID, LOG_FILE_NAME, READ_PERMISSION)) {
+                            buffer = calloc(4*1024, sizeof(uint8_t));
+                            if (buffer == NULL) {
+                                ESP_LOGE(TAG, "Not enough memory, malloc failed!");
+                            }
+                            else {
+                                httpd_resp_set_type(req, "text/plain");
+                                httpd_resp_set_hdr(req, "Content-Disposition", "attachment; filename=\"logs.txt\"");
+                                do {
+                                    readBytes = fs_readFile(fileID, LOG_FILE_NAME, buffer, totalReadBytes);
+                                    totalReadBytes += readBytes;
+                                    httpd_resp_send_chunk(req, buffer, readBytes);
+                                } while (readBytes == READ_SIZE);
+                                httpd_resp_send_chunk(req, NULL, 0);
+                                if (ESP_OK == fs_closeFile(fileID)) {
+                                    ESP_LOGI(TAG, "Configuration file has been sent.");
+                                }
+                                else {
+                                    ESP_LOGE(TAG, "Error while closing file.");
+                                } 
+                            }
+                            free(buffer);
+                        }
+                        else {
+                            ESP_LOGE(TAG,"File opening error");
+                        }
+                    }
+                    else {
+                        ESP_LOGE(TAG,"no free file handlers");
+                    }
+                }
+                else {
+                    ESP_LOGE(TAG,"Unknown Value");
+                }
             }
             else {
-                ESP_LOGE(TAG, "Error while closing file.");
+                ESP_LOGE(TAG,"Unknown Key");
             }
-            free(buffer);
         }
+        free(bufferQuery);
     }
     return ESP_OK;
 }
@@ -525,7 +604,7 @@ esp_err_t http_handlers_postConfiguration_EventHandler(httpd_req_t *req) {
                                     cJSON_GetObjectItem(cfgFile.network, "wifiPassword")->valuestring = cJSON_GetObjectItem(cfgRcv.root, "wifiPassword")->valuestring;
                                 }
                             }
-                            if (ESP_OK == fs_rewindFile(fileID)) {
+                            if (ESP_OK == fs_rewindFile(fileID, true)) {
                                 printf("4...");
                                 ESP_LOGW(TAG,"saving file :%s",cJSON_Print(cfgFile.root));
                                 if (0 < fs_writeFile(fileID, SETTING_FILE_NAME, cJSON_Print(cfgFile.root), strlen(cJSON_Print(cfgFile.root)))) {
@@ -603,7 +682,6 @@ esp_err_t http_handlers_postConfiguration_EventHandler(httpd_req_t *req) {
     free(querryContent);
     return ESP_OK;
 }
-
 
 
 void http_handlers_sendOverWS(const char* buffer){

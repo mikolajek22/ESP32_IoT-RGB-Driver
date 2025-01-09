@@ -175,10 +175,22 @@
                 </h2>
             </div>
             <div id="content">
-                <h2 style="margin-left: 10px;">Console Output</h2>
+                <h2 style="margin-left: 10px;">Real Time Logging Console</h2>
                 <div id="console">
                     <span id="log">Getting logs...</span><br>
                 </div>
+                <h2 style="margin-left: 10px;">DOWNLOAD LOGS.TXT</h2>
+                <h2 class="fa fa-solid fa-download", style="font-size: 3vw; color: rgb(255, 75, 180); text-shadow: 2px 2px 0 black, 
+                    -2px 2px 0 black, 
+                    2px -2px 0 black, 
+                    -2px -2px 0 black, 
+                    2px 0 0 black, 
+                    -2px 0 0 black, 
+                    0 2px 0 black, 
+                    0 -2px 0 black;
+                    display: flex;
+                    margin-left: 120px;", onclick="configurationGet()">
+                </h2>
             </div>
 
             <script>
@@ -202,6 +214,17 @@
                         case 'control': window.location.href = '/get?page=control'; break;
                         case 'logs': window.location.href = '/get?page=logs'; break;
                     }
+                }
+                function configurationGet(){
+                    const fileUrl = `${window.location.origin}/download?file=logs`;
+
+                    const link = document.createElement('a');
+                    link.href = fileUrl;
+                    link.download = '';
+
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
                 }
 
                 function startWS() {
@@ -235,6 +258,7 @@
                 
                 // Enable WS after opening this page.
                 window.onload = startWS;
+                
             </script>
         </div>
     </body>

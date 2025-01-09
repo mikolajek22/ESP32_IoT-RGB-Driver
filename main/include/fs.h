@@ -10,7 +10,7 @@
 #define READ_WRITE_PERMISSION   "r+"
 #define APPEND_PERMISSION       "a"
 
-#define READ_SIZE           255
+#define READ_SIZE           4096
 
 /**
  * @brief used to open file from LFS. It is obligatory to do any operation on the file, e.g. wirte/read. In case of the file does not exist it will be created.
@@ -75,7 +75,7 @@ size_t fs_writeFile(uint8_t fID, char* fName, char* buffer, uint16_t writeSize);
  * @param ID IN, ID of the file handler
  * @return ESP_OK if file has been rewinded, ESP_FAIL if file ID has not been found.
  */
-esp_err_t fs_rewindFile(uint8_t fID);
+esp_err_t fs_rewindFile(uint8_t fID, bool overwrite);
 
 /**
  * @brief file delating

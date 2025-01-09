@@ -8,7 +8,7 @@
 
 #define MAX_TIME_BUFFER_LEN     64
 #define MAX_LOG_BUFFER_LEN      MAX_TIME_BUFFER_LEN + 256
-#define MAX_LOGS_FILE_SIZE      1024*512
+#define MAX_LOGS_FILE_SIZE      512*1024
 #define LOGS_FILE_NAME          "logs.txt"
 
 void deleteAnsiTrash(char *log) {
@@ -57,13 +57,14 @@ int vprintf_custom(const char* fmt, va_list args){
         }
         if (FS_LOGS_ENABLE) {
             // write log into FS
+            deleteAnsiTrash(fixedLogWS);
             uint8_t fileID;
             if (ESP_OK == fs_findID(&fileID)) {
                 if (ESP_OK == fs_openFile(fileID, LOGS_FILE_NAME, APPEND_PERMISSION)) {
                     if (MAX_LOGS_FILE_SIZE <= fs_fileSize(fileID)) {
-                        fs_rewindFile(fileID);
+                        fs_rewindFile(fileID, false);
                     }
-                    fs_writeFile(fileID, LOGS_FILE_NAME, fixedLogWS, sizeof(fixedLogWS));
+                    fs_writeFile(fileID, LOGS_FILE_NAME, fixedLogWS, strlen(fixedLogWS));
                     fs_closeFile(fileID);
                 }
             }  

@@ -14,7 +14,7 @@ last update: 04.10.2024
 #define FILE_OPENED             1
 #define FILE_CLOSED             0
 
-#define READ_SIZE               255
+#define READ_SIZE               4096
 
 static const char *LOG_TAG = "FILE_SYS";
 static esp_vfs_littlefs_conf_t conf = {
@@ -119,9 +119,9 @@ size_t fs_writeFile(uint8_t fID, char* fName, char* buffer, uint16_t writeSize){
     return ret;
 }
 
-esp_err_t fs_rewindFile(uint8_t fID) {
+esp_err_t fs_rewindFile(uint8_t fID, bool overwrite) {
     xSemaphoreTake(fileMutex, pdMS_TO_TICKS(500));
-    ftruncate(fileno(arrFiles[fID].file), 0);   //find file decription, set length to 0. This will cause owerwritting whole file.
+    if (overwrite) {ftruncate(fileno(arrFiles[fID].file), 0);}   //find file decription, set length to 0. This will cause owerwritting whole file.
     if (arrFiles[fID].file != NULL){ 
         rewind(arrFiles[fID].file);
         xSemaphoreGive(fileMutex);
