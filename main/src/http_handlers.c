@@ -368,7 +368,7 @@ esp_err_t http_handlers_getDownload_EventHandler(httpd_req_t *req) {
                                     httpd_resp_set_type(req, "text/plain");
                                     httpd_resp_set_hdr(req, "Content-Disposition", "attachment; filename=\"settings.json\"");
                                     httpd_resp_send(req, cJSON_Print(root), strlen(cJSON_Print(root)));
-                                    ESP_LOGI(TAG, "Configuration file has been sent.");
+                                    ESP_LOGI(TAG, "%s file has been sent (size %d bytes).", SETTING_FILE_NAME, totalReadBytes);
                                 }
                                 else {
                                     ESP_LOGE(TAG, "Error while closing file.");
@@ -405,7 +405,7 @@ esp_err_t http_handlers_getDownload_EventHandler(httpd_req_t *req) {
                                 } while (readBytes == READ_SIZE);
                                 httpd_resp_send_chunk(req, NULL, 0);
                                 if (ESP_OK == fs_closeFile(fileID)) {
-                                    ESP_LOGI(TAG, "Configuration file has been sent.");
+                                    ESP_LOGI(TAG, "%s file has been sent (size %d bytes).", LOG_FILE_NAME, totalReadBytes);
                                 }
                                 else {
                                     ESP_LOGE(TAG, "Error while closing file.");
@@ -578,11 +578,8 @@ esp_err_t http_handlers_postConfiguration_EventHandler(httpd_req_t *req) {
 
                             cfgFile.settings = cJSON_GetObjectItem(cfgFile.root, "settings");
                             cfgFile.network = cJSON_GetObjectItem(cfgFile.settings, "network");
-                            printf("1...");
                             if (NULL != cfgRcv.root){
-                                printf("2...");
                                 if (NULL != cJSON_GetObjectItem(cfgRcv.root, "ipAddress")) {
-                                    printf("3...");
                                     cJSON_GetObjectItem(cfgFile.network, "ipAddress")->valuestring = cJSON_GetObjectItem(cfgRcv.root, "ipAddress")->valuestring;
                                 }
                                 if (NULL != cJSON_GetObjectItem(cfgRcv.root, "netmask")) {
@@ -605,10 +602,8 @@ esp_err_t http_handlers_postConfiguration_EventHandler(httpd_req_t *req) {
                                 }
                             }
                             if (ESP_OK == fs_rewindFile(fileID, true)) {
-                                printf("4...");
                                 ESP_LOGW(TAG,"saving file :%s",cJSON_Print(cfgFile.root));
                                 if (0 < fs_writeFile(fileID, SETTING_FILE_NAME, cJSON_Print(cfgFile.root), strlen(cJSON_Print(cfgFile.root)))) {
-                                    printf("5...");
                                     httpd_resp_send(req, "Configuration saved", strlen("Configuration saved"));
                                 }
                                 else {

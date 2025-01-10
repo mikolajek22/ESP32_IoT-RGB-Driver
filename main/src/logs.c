@@ -62,7 +62,8 @@ int vprintf_custom(const char* fmt, va_list args){
             if (ESP_OK == fs_findID(&fileID)) {
                 if (ESP_OK == fs_openFile(fileID, LOGS_FILE_NAME, APPEND_PERMISSION)) {
                     if (MAX_LOGS_FILE_SIZE <= fs_fileSize(fileID)) {
-                        fs_rewindFile(fileID, false);
+                        // TODO: At this moment file is deleted while reloading. It should be saved as an old file and new one should be created in order to not loose last 512 kB of logs from past!
+                        fs_rewindFile(fileID, true);
                     }
                     fs_writeFile(fileID, LOGS_FILE_NAME, fixedLogWS, strlen(fixedLogWS));
                     fs_closeFile(fileID);

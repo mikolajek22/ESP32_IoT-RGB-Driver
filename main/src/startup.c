@@ -33,7 +33,6 @@ esp_err_t startup_ReadConfiguration() {
             do {
                 readBytes = fs_readFile(fileID, SETTING_FILE_NAME, buffer + totalReadBytes, totalReadBytes);
                 totalReadBytes += readBytes;
-                ESP_LOGE(TAG, "read bytes %d", totalReadBytes);
             } while (readBytes == READ_SIZE);
 
             if (ESP_OK == fs_closeFile(fileID)) {

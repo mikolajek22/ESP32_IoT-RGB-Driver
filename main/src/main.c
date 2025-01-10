@@ -24,12 +24,14 @@
 #include "fs.c"
 #include "driver/ledc.h"
 #include "http_server.h"
-// #include "driver/adc.h"
+
 #include "http_server.h"
 
 #include "startup.h"
 #include "logs.h"
 #include "sntp_sync.h"
+#include "driver/timer.h"
+#include "diagnostic.h"
 #define RED_LED_PIN         13
 #define GREEN_LED_PIN       12
 #define BLUE_LED_PIN        14
@@ -54,12 +56,13 @@ typedef struct {
 } rgbController_t;
 static rgbController_t rgbParams;
 
+/* main RGB led tape controller */
 TaskHandle_t taskRgbController  = NULL;
-TaskHandle_t taskWebServer      = NULL;
+QueueHandle_t timerQueue;
+
 extern void rgbController_main(void *pvParameters);
 
-static void init_hw(void) {
-    
+static void init_hw(void) { 
     ledc_timer_config(&ledc_timer);
     for(int i=0;i<COLORS_AMOUNT;i++) {
         ledc_channel[i].channel = LEDC_CHANNEL_0+i;
@@ -76,6 +79,34 @@ static void init_hw(void) {
     rgbParams.ledc_timer      = &ledc_timer;
 }
 
+bool IRAM_ATTR timer_callback(void) {   // This callback should be stored directly in IRAM due to execution's time requirements.
+    int signal = 1;
+    /* logging cannot be called (from ISR) here because of existing locks - mutexs etc. Diagnostic fetch will be done in "timter_DiagnosticTask"*/
+    xQueueSendFromISR(timerQueue, &signal, NULL);
+    return true;
+}
+
+esp_err_t enableDiagnosticStatus(void) {
+    /* define queue for timer. Callback is called from ISR and the task to be done can not be executet directly in callback*/
+    timerQueue = xQueueCreate(10, sizeof(int));
+    xTaskCreate(diagnostic_main, "timer_DiagnosticTask", 4096, NULL, 5, NULL);
+    /* GPTimer initialization */
+    timer_config_t timer_config = {
+        .divider = 80,
+        .counter_dir = TIMER_COUNT_UP,
+        .counter_en = TIMER_PAUSE,
+        .alarm_en = TIMER_ALARM_EN,
+        .auto_reload = true,
+    };
+    timer_init(TIMER_GROUP_0, TIMER_0, &timer_config);
+    /* diagnostic status will be displayed every 5 seconds (in logs) */
+    timer_set_alarm_value(TIMER_GROUP_0, TIMER_0, 5000000);
+    timer_enable_intr(TIMER_GROUP_0, TIMER_0);
+    timer_isr_callback_add(TIMER_GROUP_0, TIMER_0, timer_callback, NULL, 0);
+    timer_start(TIMER_GROUP_0, TIMER_0);
+    return ESP_OK;
+}
+
 void app_main()
 {
     /* non-volotail flash initialization */
@@ -86,26 +117,29 @@ void app_main()
         ret = nvs_flash_init();
     }
     ESP_ERROR_CHECK(ret);
-    #define LEDC_MODE               LEDC_LOW_SPEED_MODE
-    #define LEDC_DUTY               255
-    #define LEDC_CHANNEL            LEDC_CHANNEL_0
     
     /* little file system initialization */
     if (ESP_OK == fs_mount()) {
         ESP_LOGI(TAG, "LFS mounted successfully");
-        /* timers initialization */
+        /* Initialize LEDC timer to control RGB with PWM */
         init_hw();
+        /* Read configuration file in order to set up static IP address, subnet mast etc. */
         startup_ReadConfiguration();
+
+        /* Obtain connection and set up a HTTP server */
         if (ESP_OK == http_server_init()) {
             if (ESP_OK == http_server_connect()) {
+                /* synchronize time */
                 sntp_sync_init();
+                /* enable logging (UART / FILE / WEBSOCKET)*/
                 logs_customizeLogs();
+                /* timers initialization to diagnostic*/
+                enableDiagnosticStatus();
             }
         }
-        /* simultanous tasks creation */
-        /* TODO: init of wifi should be called here, not in the separated thread. After this logs should be customized*/
-        // xTaskCreatePinnedToCore(http_server_main,"http_server",16384,NULL,10,&taskWebServer,1);
-        xTaskCreatePinnedToCore(rgbController_main,"color_regulator",16384, &rgbParams,5,&taskRgbController,1);
+
+        /* RGB LED STRIP CONTROLLER */
+        xTaskCreate(rgbController_main,"color_regulator",16384, &rgbParams,5,&taskRgbController);
     } 
     else {
         ESP_LOGE(TAG, "Failed to mount LFS");

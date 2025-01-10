@@ -101,7 +101,7 @@ static void Wifi_EventHandler(void *arg, esp_event_base_t event_base, int32_t ev
         }
         
         else {
-            printf("WiFi event: %ld", event_id);
+            ESP_LOGI(TAG[TAG_WIFI_MODULE], "WiFi event: %ld", event_id);
         }
     }
 

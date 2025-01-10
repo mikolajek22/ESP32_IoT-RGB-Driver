@@ -152,5 +152,14 @@ esp_err_t fs_findID(uint8_t *fID){
 }
 
 size_t fs_fileSize(uint8_t fID) {
-    return ftell(arrFiles[fID].file);
+    FILE *file = arrFiles[fID].file;
+    if (file == NULL) {
+        return 0;
+    }
+    long currentPos = ftell(file);
+    fseek(file, 0, SEEK_END); 
+    long size = ftell(file);
+    fseek(file, currentPos, SEEK_SET);
+
+    return (size_t)size;
 }
