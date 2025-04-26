@@ -32,11 +32,16 @@
 #include "sntp_sync.h"
 #include "driver/timer.h"
 #include "diagnostic.h"
-#define RED_LED_PIN         13
-#define GREEN_LED_PIN       12
-#define BLUE_LED_PIN        14
+
+// #include "oled_controller.h"
+#include "SSD1306.h"
+#define RED_LED_PIN         17
+#define GREEN_LED_PIN       18
+#define BLUE_LED_PIN        19
 
 #define COLORS_AMOUNT       3
+
+
 uint8_t const COLOR_PINS[3] = {RED_LED_PIN,GREEN_LED_PIN, BLUE_LED_PIN};
 static const char *TAG = "MAIN";
 
@@ -58,9 +63,12 @@ static rgbController_t rgbParams;
 
 /* main RGB led tape controller */
 TaskHandle_t taskRgbController  = NULL;
+TaskHandle_t taskOledController = NULL;
+
 QueueHandle_t timerQueue;
 
 extern void rgbController_main(void *pvParameters);
+extern void oledController_main(void);
 
 static void init_hw(void) { 
     ledc_timer_config(&ledc_timer);
@@ -137,9 +145,16 @@ void app_main()
                 enableDiagnosticStatus();
             }
         }
+        // volatile oled_err_t oledStatus = 99;
+        // oledStatus = oledController_init();
 
+        // oledStatus = oledController_setUp();
+        /* ==================================== TASKS ========================================== */
         /* RGB LED STRIP CONTROLLER */
-        xTaskCreate(rgbController_main,"color_regulator",16384, &rgbParams,5,&taskRgbController);
+        xTaskCreate(rgbController_main,"color_regulator", 8192, &rgbParams, 5, &taskRgbController);
+        xTaskCreate(SSD1306_main,"oledController_main", 4096, NULL, 5, &taskOledController);
+        // oledController_main
+        // xTaskCreate()
     } 
     else {
         ESP_LOGE(TAG, "Failed to mount LFS");

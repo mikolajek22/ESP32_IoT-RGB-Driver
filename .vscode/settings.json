@@ -4,7 +4,12 @@
     "cstdio": "c",
     "esp_littlefs.h": "c",
     "stat.h": "c",
-    "ledc.h": "c"
+    "ledc.h": "c",
+    "oled_controller.h": "c",
+    "condition_variable": "c",
+    "future": "c",
+    "event_groups.h": "c",
+    "ssd1306.h": "c"
   },
   "idf.adapterTargetName": "esp32"
 }
