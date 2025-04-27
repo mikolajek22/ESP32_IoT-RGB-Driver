@@ -33,8 +33,9 @@
 #include "driver/timer.h"
 #include "diagnostic.h"
 
-// #include "oled_controller.h"
+
 #include "SSD1306.h"
+#include "oled_controller.h"
 #define RED_LED_PIN         17
 #define GREEN_LED_PIN       18
 #define BLUE_LED_PIN        19
@@ -152,7 +153,7 @@ void app_main()
         /* ==================================== TASKS ========================================== */
         /* RGB LED STRIP CONTROLLER */
         xTaskCreate(rgbController_main,"color_regulator", 8192, &rgbParams, 5, &taskRgbController);
-        xTaskCreate(SSD1306_main,"oledController_main", 4096, NULL, 5, &taskOledController);
+        xTaskCreate(oled_controller_main,"oledController_main", 4096, NULL, 5, &taskOledController);
         // oledController_main
         // xTaskCreate()
     } 

@@ -16,6 +16,10 @@
 #define SSD1306_CMD_ADDR           0x00
 #define SSD1306_DATA_ADDR          0x40
 
+#define SSD1306_COLOR_WHITE         0
+#define SSD1306_COLOR_BLACK         1
+#define SSD1306_COLOR_INVERSE       2
+
 // ======================  REGISTERS  ========================= //
 #define SSD1306_MEMORYMODE             0x20           
 #define SSD1306_COLUMNADDR             0x21           
@@ -44,7 +48,7 @@
 
 #define SSD1306_EXTERNALVCC            0x01
 #define SSD1306_SWITCHCAPVCC           0x02
-#define SSD1306_DEACTIVATE_SCROLL 0x2E 
+#define SSD1306_DEACTIVATE_SCROLL      0x2E 
 
 
 
@@ -61,6 +65,7 @@ class SSD1306 {
             this->i2c_ssd1306 = i2c_ssd1306;
         }
         ssd1306_err_t SSD1306_init();
+        void SSD1306_DrawPixel(int16_t x, int16_t y, uint8_t color);
         void SSD1306_display();
         void SSD1306_clear(uint8_t color);
 

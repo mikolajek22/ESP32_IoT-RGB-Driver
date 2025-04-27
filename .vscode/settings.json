@@ -9,7 +9,9 @@
     "condition_variable": "c",
     "future": "c",
     "event_groups.h": "c",
-    "ssd1306.h": "c"
+    "ssd1306.h": "c",
+    "compare": "cpp",
+    "cstdint": "cpp"
   },
   "idf.adapterTargetName": "esp32"
 }
