@@ -6,19 +6,7 @@
 #define I2C_SCL_PIN                 22
 #define I2C_SDA_PIN                 21
 
-#define SSD1306_BUFFER_SIZE         SSD1306_WIDTH * SSD1306_HEIGHT / 8
-
-
-i2c_bus_device_t i2c_ssd1306 = {
-    .dev_cfg = {
-        .dev_addr_length    = I2C_ADDR_BIT_LEN_7,
-        .device_address    = SSD1306_ADDR,
-        .scl_speed_hz       = 100000,
-    },
-};
-
-
-static uint8_t ssd1306Buffer[SSD1306_BUFFER_SIZE];
+uint8_t SSD1306::ssd1306Buffer[SSD1306_BUFFER_SIZE];
 
 
 ssd1306_err_t SSD1306::SSD1306_init() {

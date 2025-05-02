@@ -10,7 +10,8 @@ idf_component_register(SRCS "src/main.c"
                             "src/i2c_bus.c" 
                             "src/SSD1306.cpp"  
                             "src/ssd1306_graphic/gfx.cpp"  
-                            "src/ssd1306_graphic/oled_controller.cpp"              
+                            "src/ssd1306_graphic/oled_controller.cpp"      
+                            "src/keyboard.cpp"        
                             INCLUDE_DIRS "src")
 include_directories(${CMAKE_CURRENT_LIST_DIR}/include
                     ${CMAKE_CURRENT_LIST_DIR}/include/ssd1306_graphic)                    

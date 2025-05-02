@@ -13,6 +13,8 @@
 #define SSD1306_HEIGHT             64
 #define SSD1306_WIDTH              128
 
+#define SSD1306_BUFFER_SIZE         SSD1306_WIDTH * SSD1306_HEIGHT / 8
+
 #define SSD1306_CMD_ADDR           0x00
 #define SSD1306_DATA_ADDR          0x40
 
@@ -55,7 +57,7 @@
 class SSD1306 {
     private:
         i2c_bus_device_t *i2c_ssd1306;
-
+        static uint8_t ssd1306Buffer[SSD1306_BUFFER_SIZE];
         ssd1306_err_t SSD1306_Cmd(uint8_t cmd);
         ssd1306_err_t SSD1306_Data(uint8_t *buffer, size_t size);
 
@@ -69,7 +71,6 @@ class SSD1306 {
         void SSD1306_display();
         void SSD1306_clear(uint8_t color);
 
-    
 };
 
 #endif

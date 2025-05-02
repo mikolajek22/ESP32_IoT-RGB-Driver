@@ -11,7 +11,14 @@
     "event_groups.h": "c",
     "ssd1306.h": "c",
     "compare": "cpp",
-    "cstdint": "cpp"
+    "cstdint": "cpp",
+    "task.h": "c",
+    "esp_http_server.h": "c",
+    "sys.h": "c",
+    "inttypes.h": "c",
+    "gpio.h": "c",
+    "esp_wifi.h": "c",
+    "semphr.h": "c"
   },
   "idf.adapterTargetName": "esp32"
 }

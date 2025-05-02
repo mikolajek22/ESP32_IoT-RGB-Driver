@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h> //Requires by memset
 #include "esp_mac.h"
+#include "main.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/semphr.h"
@@ -36,43 +37,62 @@
 
 #include "SSD1306.h"
 #include "oled_controller.h"
-#define RED_LED_PIN         17
-#define GREEN_LED_PIN       18
-#define BLUE_LED_PIN        19
+#include "keyboard.h"
+
+#define RED_LED_PIN         GPIO_NUM_17
+#define GREEN_LED_PIN       GPIO_NUM_18
+#define BLUE_LED_PIN        GPIO_NUM_19
 
 #define COLORS_AMOUNT       3
 
 
-uint8_t const COLOR_PINS[3] = {RED_LED_PIN,GREEN_LED_PIN, BLUE_LED_PIN};
-static const char *TAG = "MAIN";
 
-static ledc_channel_config_t ledc_channel[3];
-static ledc_timer_config_t ledc_timer = {
-    .duty_resolution = LEDC_TIMER_8_BIT,
-    .freq_hz = 1000,
-    .speed_mode = LEDC_HIGH_SPEED_MODE,
-    .timer_num = LEDC_TIMER_0,
-    .clk_cfg = LEDC_AUTO_CLK,
-};
-
-/* struct that is passed to rgb controller */
+ /* ======================================== TYPEDEFS ======================================== */
 typedef struct {
     ledc_channel_config_t *ledc_channel[3];
     ledc_timer_config_t *ledc_timer;
 } rgbController_t;
-static rgbController_t rgbParams;
 
-/* main RGB led tape controller */
+ /* ======================================== CONSTS ======================================== */
+
+uint8_t const COLOR_PINS[3] = {RED_LED_PIN, GREEN_LED_PIN, BLUE_LED_PIN};
+static const char *TAG = "MAIN";
+
+ /* ======================================== FREERTOS ======================================== */
+
 TaskHandle_t taskRgbController  = NULL;
 TaskHandle_t taskOledController = NULL;
+TaskHandle_t taskKeyboardController = NULL;
 
 QueueHandle_t timerQueue;
+QueueHandle_t keyboardQueue;
+
+ /* ======================================== VARS ======================================== */
+
+static rgbController_t rgbParams;
+
+ /* ======================================== PFP ======================================== */
 
 extern void rgbController_main(void *pvParameters);
 extern void oledController_main(void);
+bool IRAM_ATTR timer_callback(void);
+static void IRAM_ATTR btn_isr_iqr(void *arg);
+
 
 static void init_hw(void) { 
+    
+    /* PWM CONFIG */
+    static ledc_channel_config_t ledc_channel[3];
+    static ledc_timer_config_t ledc_timer = {
+        .duty_resolution = LEDC_TIMER_8_BIT,
+        .freq_hz = 1000,
+        .speed_mode = LEDC_HIGH_SPEED_MODE,
+        .timer_num = LEDC_TIMER_0,
+        .clk_cfg = LEDC_AUTO_CLK,
+    };
+    
     ledc_timer_config(&ledc_timer);
+
     for(int i=0;i<COLORS_AMOUNT;i++) {
         ledc_channel[i].channel = LEDC_CHANNEL_0+i;
         ledc_channel[i].duty = 0;
@@ -86,19 +106,29 @@ static void init_hw(void) {
     rgbParams.ledc_channel[1] = &ledc_channel[1];
     rgbParams.ledc_channel[2] = &ledc_channel[2];
     rgbParams.ledc_timer      = &ledc_timer;
-}
 
-bool IRAM_ATTR timer_callback(void) {   // This callback should be stored directly in IRAM due to execution's time requirements.
-    int signal = 1;
-    /* logging cannot be called (from ISR) here because of existing locks - mutexs etc. Diagnostic fetch will be done in "timter_DiagnosticTask"*/
-    xQueueSendFromISR(timerQueue, &signal, NULL);
-    return true;
+    /* BTN CONFIG */
+    gpio_config_t btn_config = {
+        .intr_type = GPIO_INTR_NEGEDGE,
+        .mode = GPIO_MODE_INPUT,
+        .pin_bit_mask = (1ULL << BTN1_PIN) | (1ULL << BTN2_PIN) | (1ULL << BTN3_PIN) | (1ULL << BTN4_PIN) | (1ULL << BTN5_PIN),
+        .pull_up_en = GPIO_PULLUP_ENABLE,
+        .pull_down_en = GPIO_PULLDOWN_DISABLE
+    };
+    gpio_config(&btn_config);
+
+    esp_err_t err = gpio_install_isr_service(0);
+    if (err != ESP_OK) {
+        printf("gpio_install_isr_service failed: %s\n", esp_err_to_name(err));
+    } // domyślny poziom priorytetu
+    gpio_isr_handler_add(BTN1_PIN, btn_isr_iqr, (void*) BTN1_PIN);
+    gpio_isr_handler_add(BTN2_PIN, btn_isr_iqr, (void*) BTN2_PIN);
+    gpio_isr_handler_add(BTN3_PIN, btn_isr_iqr, (void*) BTN3_PIN);
+    gpio_isr_handler_add(BTN4_PIN, btn_isr_iqr, (void*) BTN4_PIN);
+    gpio_isr_handler_add(BTN5_PIN, btn_isr_iqr, (void*) BTN5_PIN);  
 }
 
 esp_err_t enableDiagnosticStatus(void) {
-    /* define queue for timer. Callback is called from ISR and the task to be done can not be executet directly in callback*/
-    timerQueue = xQueueCreate(10, sizeof(int));
-    xTaskCreate(diagnostic_main, "timer_DiagnosticTask", 4096, NULL, 5, NULL);
     /* GPTimer initialization */
     timer_config_t timer_config = {
         .divider = 80,
@@ -152,15 +182,17 @@ void app_main()
         // oledStatus = oledController_setUp();
         /* ==================================== TASKS ========================================== */
         /* RGB LED STRIP CONTROLLER */
+        timerQueue = xQueueCreate(10, sizeof(int));
+        keyboardQueue = xQueueCreate(1, sizeof(int));
+
+        xTaskCreate(diagnostic_main, "timer_DiagnosticTask", 4096, NULL, 5, NULL);
         xTaskCreate(rgbController_main,"color_regulator", 8192, &rgbParams, 5, &taskRgbController);
         xTaskCreate(oled_controller_main,"oledController_main", 4096, NULL, 5, &taskOledController);
-        // oledController_main
-        // xTaskCreate()
+        xTaskCreate(keyboard_main_task,"keyboard_main_task", 4096, NULL, 5, &taskKeyboardController);
     } 
     else {
         ESP_LOGE(TAG, "Failed to mount LFS");
     }
-    
 }
 
     
@@ -176,3 +208,35 @@ void app_main()
     flash usage
     files list on flash
     date and time? + actual time of working? maybe...*/
+
+    /* ======================================== INTERRUPTS & CALLBACKS ======================================== */
+   
+    static void IRAM_ATTR btn_isr_iqr(void *arg) {
+        uint32_t gpio_num = (uint32_t) arg;
+        uint32_t gpioAction = 0;
+        switch (gpio_num) {
+            case BTN1_PIN:
+                gpioAction = BTN_1_PRESSED;
+                break;
+            case BTN2_PIN:
+                gpioAction = BTN_2_PRESSED;
+                break;
+            case BTN3_PIN:
+                gpioAction = BTN_3_PRESSED;
+                break;
+            case BTN4_PIN:
+                gpioAction = BTN_4_PRESSED;
+                break;
+            case BTN5_PIN:
+                gpioAction = BTN_5_PRESSED;
+                break;
+
+        }
+        xQueueSendFromISR(keyboardQueue, &gpioAction, NULL);
+    }
+
+    bool IRAM_ATTR timer_callback(void) {
+        int signal = 1;
+        xQueueSendFromISR(timerQueue, &signal, NULL);
+        return true;
+    }
