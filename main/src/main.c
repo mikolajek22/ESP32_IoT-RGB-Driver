@@ -38,14 +38,15 @@
 #include "SSD1306.h"
 #include "oled_controller.h"
 #include "keyboard.h"
-
+#include "led.h"
 #define RED_LED_PIN         GPIO_NUM_17
 #define GREEN_LED_PIN       GPIO_NUM_18
 #define BLUE_LED_PIN        GPIO_NUM_19
 
 #define COLORS_AMOUNT       3
 
-
+#define LD1 GPIO_NUM_4
+#define LD2 GPIO_NUM_27
 
  /* ======================================== TYPEDEFS ======================================== */
 typedef struct {
@@ -63,6 +64,7 @@ static const char *TAG = "MAIN";
 TaskHandle_t taskRgbController  = NULL;
 TaskHandle_t taskOledController = NULL;
 TaskHandle_t taskKeyboardController = NULL;
+TaskHandle_t taskLedController = NULL;
 
 QueueHandle_t timerQueue;
 QueueHandle_t keyboardQueue;
@@ -126,6 +128,18 @@ static void init_hw(void) {
     gpio_isr_handler_add(BTN3_PIN, btn_isr_iqr, (void*) BTN3_PIN);
     gpio_isr_handler_add(BTN4_PIN, btn_isr_iqr, (void*) BTN4_PIN);
     gpio_isr_handler_add(BTN5_PIN, btn_isr_iqr, (void*) BTN5_PIN);  
+
+    /* LED CONFIG */
+    gpio_config_t led_config = {
+        .intr_type = GPIO_INTR_DISABLE,
+        .mode = GPIO_MODE_OUTPUT,
+        .pin_bit_mask = (1ULL << LD1) | (1ULL << LD2),
+        .pull_up_en = GPIO_PULLUP_DISABLE,
+        .pull_down_en = GPIO_PULLDOWN_DISABLE
+    };
+    gpio_config(&led_config);
+    gpio_set_level(LD1, 1);
+    gpio_set_level(LD2, 1);
 }
 
 esp_err_t enableDiagnosticStatus(void) {
@@ -189,6 +203,8 @@ void app_main()
         xTaskCreate(rgbController_main,"color_regulator", 8192, &rgbParams, 5, &taskRgbController);
         xTaskCreate(oled_controller_main,"oledController_main", 4096, NULL, 5, &taskOledController);
         xTaskCreate(keyboard_main_task,"keyboard_main_task", 4096, NULL, 5, &taskKeyboardController);
+        xTaskCreate(led_main_task,"led_main_task", 1024, NULL, 5, &taskLedController);
+        
     } 
     else {
         ESP_LOGE(TAG, "Failed to mount LFS");

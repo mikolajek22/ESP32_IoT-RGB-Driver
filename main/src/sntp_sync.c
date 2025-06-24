@@ -16,29 +16,40 @@
 #define DELAY_MS                    2000 / portTICK_PERIOD_MS // (2000 ms)
 
 static const char *TAG = "SNTP";
+static SemaphoreHandle_t sntpSyncSemaphore;
 
 void time_sync_notification_cb(struct timeval *tv) {
     ESP_LOGI(TAG, "SNTP Synchronized");
 }
 
 esp_err_t sntp_sync_ObtainActualTime(const char* bufTime){
-    time_t now = 0;
-    struct tm timeinfo = { 0 };
-    char tempBufTime[MAX_TIME_BUFFER_LEN];
+    if (xSemaphoreTake(sntpSyncSemaphore, pdMS_TO_TICKS(100)) == pdTRUE) {
+        time_t now = 0;
+        struct tm timeinfo = { 0 };
+        char tempBufTime[MAX_TIME_BUFFER_LEN];
+        esp_err_t ret = ESP_FAIL;
 
-    time(&now);
-    localtime_r(&now, &timeinfo);
+        time(&now);
+        localtime_r(&now, &timeinfo);
 
-    if (0 >= strftime(tempBufTime, sizeof(tempBufTime), "%d/%m/%Y %H:%M:%S", &timeinfo)) {
-        return ESP_FAIL;
+        if (0 >= strftime(tempBufTime, sizeof(tempBufTime), "%d/%m/%Y %H:%M:%S", &timeinfo)) {
+            return ret;
+        }
+        if (0 >= sprintf(bufTime, tempBufTime)) {
+            return ret;
+        }
+        ret = ESP_OK;
+        xSemaphoreGive(sntpSyncSemaphore);
+        return ret;
     }
-    if (0 >= sprintf(bufTime, tempBufTime)) {
-        return ESP_FAIL;
+    else {
+        return ESP_ERR_TIMEOUT;
     }
-    return ESP_OK;
+    
 }
 
  esp_err_t sntp_sync_init()  {
+    sntpSyncSemaphore = xSemaphoreCreateMutex();
     char timeBuffer[MAX_TIME_BUFFER_LEN];
     esp_sntp_config_t config = ESP_NETIF_SNTP_DEFAULT_CONFIG(CONFIG_SNTP_TIME_SERVER);
     config.sync_cb = time_sync_notification_cb;

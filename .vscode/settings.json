@@ -18,7 +18,9 @@
     "inttypes.h": "c",
     "gpio.h": "c",
     "esp_wifi.h": "c",
-    "semphr.h": "c"
+    "semphr.h": "c",
+    "freertos.h": "c",
+    "led.h": "c"
   },
   "idf.adapterTargetName": "esp32"
 }

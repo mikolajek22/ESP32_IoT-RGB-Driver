@@ -3,6 +3,7 @@
 #include "main.h"
 #include "esp_log.h"
 #include "driver/gpio.h"
+#include "oled_controller.hpp"
 KEYBOARD keyboard;
 extern QueueHandle_t keyboardQueue;
 static const char *TAG = "KEYBOARD";
@@ -73,23 +74,65 @@ void keyboard_main_task() {
     }
 }
 
+/* UP*/
 void KEYBOARD::keyboard_btn1_pressed() {
+    if (menu.actualPage == TIME_PAGE || menu.actualPage == NETWORK_PAGE) {
+        menu.actualPage = MENU_PAGE;
+    }
+    else if (menu.actualPage == MENU_PAGE){
+        controller->oled_prev_cell();
+    }
+    
     ESP_LOGE(TAG, "BTN1 Pressed!");
     return;
 }
+
+/* MIDDLE */
 void KEYBOARD::keyboard_btn2_pressed() {
+    if (menu.actualPage == TIME_PAGE) {
+        menu.actualPage = MENU_PAGE;
+    }
+    else if (menu.actualPage == MENU_PAGE || menu.actualPage == NETWORK_PAGE || menu.actualPage == IP_ADDR_PAGE){
+        controller->oled_accept_cell();
+    }
     ESP_LOGE(TAG, "BTN2 Pressed!");
     return;
 }
+
+/* DOWN */
 void KEYBOARD::keyboard_btn3_pressed() {
+    if (menu.actualPage == TIME_PAGE) {
+        menu.actualPage = MENU_PAGE;
+    }
+    else if (menu.actualPage == MENU_PAGE || menu.actualPage == NETWORK_PAGE){
+        controller->oled_next_cell();
+    }
     ESP_LOGE(TAG, "BTN3 Pressed!");
+    
     return;
 }
+
+/* LEFT */
 void KEYBOARD::keyboard_btn4_pressed() {
+    if (menu.actualPage == TIME_PAGE) {
+        menu.actualPage = MENU_PAGE;
+    }
+    else if (menu.actualPage == MENU_PAGE){
+        
+    }
     ESP_LOGE(TAG, "BTN4 Pressed!");
     return;
 }
+
+/* RIGHT */
 void KEYBOARD::keyboard_btn5_pressed() {
+    if (menu.actualPage == TIME_PAGE) {
+        menu.actualPage = MENU_PAGE;
+    }
+    else if (menu.actualPage == MENU_PAGE){
+        
+    }
     ESP_LOGE(TAG, "BTN5 Pressed!");
     return;
 }
+
