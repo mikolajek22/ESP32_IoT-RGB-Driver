@@ -39,9 +39,9 @@
 #include "oled_controller.h"
 #include "keyboard.h"
 #include "led.h"
-#define RED_LED_PIN         GPIO_NUM_17
-#define GREEN_LED_PIN       GPIO_NUM_18
-#define BLUE_LED_PIN        GPIO_NUM_19
+#define RED_LED_PIN         GPIO_NUM_18
+#define GREEN_LED_PIN       GPIO_NUM_19
+#define BLUE_LED_PIN        GPIO_NUM_17
 
 #define COLORS_AMOUNT       3
 
@@ -200,7 +200,7 @@ void app_main()
         keyboardQueue = xQueueCreate(1, sizeof(int));
 
         xTaskCreate(diagnostic_main, "timer_DiagnosticTask", 4096, NULL, 5, NULL);
-        xTaskCreate(rgbController_main,"color_regulator", 8192, &rgbParams, 5, &taskRgbController);
+        xTaskCreate(rgbController_main,"color_regulator", 8192, &rgbParams, 2, &taskRgbController);
         xTaskCreate(oled_controller_main,"oledController_main", 4096, NULL, 5, &taskOledController);
         xTaskCreate(keyboard_main_task,"keyboard_main_task", 4096, NULL, 5, &taskKeyboardController);
         xTaskCreate(led_main_task,"led_main_task", 1024, NULL, 5, &taskLedController);

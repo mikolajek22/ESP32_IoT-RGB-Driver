@@ -28,6 +28,7 @@
 
 /* configuration PUT RGB query */
 #define KEY_QUERY_MODE              "mode"
+#define KEY_QUERY_PERIOD            "period"
 #define VALUE_QUERY_MANUAL          "manual"
 #define VALUE_QUERY_SEQUENCE        "sequence"
 #define VALUE_QUERY_ORIGINAL        "original"
@@ -57,8 +58,8 @@ ws_info_t wsInfo = {
 
 extern void actualizeValue(uint8_t red, uint8_t green, uint8_t blue);
 extern void actualizeMode(uint8_t redMode, uint8_t greenMode, uint8_t blueMode, uint8_t sequenceNo, uint32_t period);
-extern void createSequence(colors_t first, colors_t through, colors_t last);
-
+extern void createSequence(colors_t first, colors_t through, colors_t last, uint32_t period);
+extern void actualizePeriod(uint16_t period);
 
 /* Get .html default page */
 esp_err_t http_handlers_getStartPage_EventHandler(httpd_req_t *req) {
@@ -489,27 +490,37 @@ esp_err_t http_handlers_postRGB_EventHandler(httpd_req_t *req) {
                         cJSON *sequence = cJSON_GetObjectItem(root, "sequence");
                         cJSON *sFirst = cJSON_GetObjectItem(sequence, "first");
                         originalRGB[0].red = cJSON_GetObjectItem(sFirst, "red")->valueint;
-                        originalRGB[0].green = cJSON_GetObjectItem(sFirst, "green")->valueint;
+                        originalRGB[0].green = cJSON_GetObjectItem(sFirst, "reen")->valueint;
                         originalRGB[0].blue = cJSON_GetObjectItem(sFirst, "blue")->valueint;
 
                         cJSON *sSecond = cJSON_GetObjectItem(sequence, "second");
-                        originalRGB[1].red = cJSON_GetObjectItem(sFirst, "red")->valueint;
-                        originalRGB[1].green = cJSON_GetObjectItem(sFirst, "green")->valueint;
-                        originalRGB[1].blue = cJSON_GetObjectItem(sFirst, "blue")->valueint;
+                        originalRGB[1].red = cJSON_GetObjectItem(sSecond, "red")->valueint;
+                        originalRGB[1].green = cJSON_GetObjectItem(sSecond, "reen")->valueint;
+                        originalRGB[1].blue = cJSON_GetObjectItem(sSecond, "blue")->valueint;
 
                         cJSON *sThird = cJSON_GetObjectItem(sequence, "third");
-                        originalRGB[2].red = cJSON_GetObjectItem(sFirst, "red")->valueint;
-                        originalRGB[2].green = cJSON_GetObjectItem(sFirst, "green")->valueint;
-                        originalRGB[2].blue = cJSON_GetObjectItem(sFirst, "blue")->valueint;
+                        originalRGB[2].red = cJSON_GetObjectItem(sThird, "red")->valueint;
+                        originalRGB[2].green = cJSON_GetObjectItem(sThird, "reen")->valueint;
+                        originalRGB[2].blue = cJSON_GetObjectItem(sThird, "blue")->valueint;
 
                         cJSON *sTime = cJSON_GetObjectItem(sequence, "time");
-                        originalPeriod = cJSON_GetObjectItem(sFirst, "period")->valueint;
-
+                        originalPeriod = cJSON_GetObjectItem(sTime, "period")->valueint;
+                        // originalPeriod = 10;
                         actualizeValue(0, 0, 0);
+                        createSequence(originalRGB[0], originalRGB[1], originalRGB[2], originalPeriod);
                         actualizeMode(RGB_ORIGINAL_MODE, RGB_ORIGINAL_MODE, RGB_ORIGINAL_MODE, 0, 2000);
-                        createSequence(originalRGB[0], originalRGB[1], originalRGB[2]);
+                        
+                        // ESP_LOGE(TAG, "***************** firs %d / %d / %d ****************",originalRGB[0].red, originalRGB[0].green, originalRGB[0].blue);
                         httpd_resp_send(req, "Original On", sizeof("Original On"));
                     }  
+                }
+                else if (!strcmp(key, KEY_QUERY_PERIOD)) {
+                    if (httpd_req_recv(req, bufferData, dataLen) > 0) {
+                        uint16_t period;
+                        cJSON *root = cJSON_Parse(bufferData);
+                        period = cJSON_GetObjectItem(root, "period")->valueint;
+                        actualizePeriod(period);
+                    }
                 }
 
                 /* UNKNOWN VALUE */
@@ -517,6 +528,7 @@ esp_err_t http_handlers_postRGB_EventHandler(httpd_req_t *req) {
                     ESP_LOGE(TAG, "Unknown query value");
                 }
             }
+            
             else {
                 ESP_LOGE(TAG, "Unknown query key");
             }

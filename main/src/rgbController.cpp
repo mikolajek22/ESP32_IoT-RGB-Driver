@@ -19,18 +19,24 @@ typedef struct color_t{
 };
 color_t color[3];
 uint8_t generalMode = false;
-static uint32_t periodTime;
-static uint8_t seqNo = 0;
+uint32_t periodTime;
+uint8_t seqNo = 0;
+uint16_t RGBTaskDelay = 100;
 
 // original sequence stats
-static colors_t baseRgbValues[3];
-static uint32_t periodOriginal;
-bool static resetOriginalFlag;
+colors_t baseRgbValues[3] = {0};
+uint16_t periodOriginal = 1;
+bool resetOriginalFlag;
 
 typedef struct {
     ledc_channel_config_t *ledc_channel[3];
     ledc_timer_config_t *ledc_timer;
 } rgbController_t;
+
+void actualizePeriod(uint16_t period) {
+    RGBTaskDelay = period;
+    ESP_LOGI("RGB", "RECEIVED PERIOD IS: %d", period);
+}
 
 void actualizeValue(uint8_t red, uint8_t green, uint8_t blue){
     redColorHandler.setValue(red);
@@ -44,6 +50,7 @@ void actualizeMode(uint8_t redMode, uint8_t greenMode, uint8_t blueMode, uint8_t
     blueColorHandler.setMode(blueMode);
     periodTime = period;
     seqNo = sequenceNo;
+    ESP_LOGI("rgb","mode actualized!");
 }
 
 void sequentialMode(uint8_t sNo, uint32_t period){
@@ -102,10 +109,10 @@ void sequentialMode(uint8_t sNo, uint32_t period){
             }
 
             /* period between 2 phases */
-            startTick = xTaskGetTickCount();
-            do {
-                sumTicks = xTaskGetTickCount() - startTick;
-            } while (10 * sumTicks < timeDelay);
+            // startTick = xTaskGetTickCount();
+            // do {
+            //     sumTicks = xTaskGetTickCount() - startTick;
+            // } while (10 * sumTicks < timeDelay);
 
             break;
 
@@ -125,19 +132,19 @@ void sequentialMode(uint8_t sNo, uint32_t period){
                         //change to sea
                         tempRed--;
                         tempGreen++;
-                        if (tempRed == 0 && tempGreen == 255) { step++; }
+                        if (tempRed == 0 && tempGreen == 255) { step++; vTaskDelay(pdMS_TO_TICKS(100));}
                         break;
                     case 2:
                         //change to yellow
                         tempBlue--;
                         tempRed++;
-                        if (tempRed == 255 && tempBlue == 0) { step++; }
+                        if (tempRed == 255 && tempBlue == 0) { step++; vTaskDelay(pdMS_TO_TICKS(100)); }
                         break;
                     case 3:
                         //change to pink
                         tempBlue++;
                         tempGreen--;
-                        if (tempBlue == 255 && tempGreen == 0) { step = 1; }
+                        if (tempBlue == 255 && tempGreen == 0) { step = 1; vTaskDelay(pdMS_TO_TICKS(100)); }
                         break;
                     default:
                         step = 1;
@@ -146,10 +153,10 @@ void sequentialMode(uint8_t sNo, uint32_t period){
             }
 
             /* period between 2 phases */
-            startTick = xTaskGetTickCount();
-            do {
-                sumTicks = xTaskGetTickCount() - startTick;
-            } while (10 * sumTicks < timeDelay);
+            // startTick = xTaskGetTickCount();
+            // do {
+            //     sumTicks = xTaskGetTickCount() - startTick;
+            // } while (10 * sumTicks < timeDelay);
 
             break;
 
@@ -168,22 +175,22 @@ void sequentialMode(uint8_t sNo, uint32_t period){
                     case 1:
                         //change to pink
                         tempRed++;
-                        if (tempRed == 255) { step++; }
+                        if (tempRed == 255) { step++; vTaskDelay(pdMS_TO_TICKS(100)); }
                         break;
                     case 2:
                         //change to red
                         tempBlue--;
-                        if (tempBlue == 0) { step++; }
+                        if (tempBlue == 0) { step++; vTaskDelay(pdMS_TO_TICKS(100)); }
                         break;
                     case 3:
                         //change to pink
                         tempBlue++;
-                        if (tempBlue == 255) { step++; }
+                        if (tempBlue == 255) { step++; vTaskDelay(pdMS_TO_TICKS(100)); }
                         break;
                     case 4:
                         //change to pink
                         tempRed--;
-                        if (tempRed == 0) { step = 1; }
+                        if (tempRed == 0) { step = 1; vTaskDelay(pdMS_TO_TICKS(100)); }
                         break;
                     default:
                         step = 1;
@@ -192,10 +199,10 @@ void sequentialMode(uint8_t sNo, uint32_t period){
             }
 
             /* period between 2 phases */
-            startTick = xTaskGetTickCount();
-            do {
-                sumTicks = xTaskGetTickCount() - startTick;
-            } while (10 * sumTicks < timeDelay);
+            // startTick = xTaskGetTickCount();
+            // do {
+            //     sumTicks = xTaskGetTickCount() - startTick;
+            // } while (10 * sumTicks < timeDelay);
             
             break;
         
@@ -236,12 +243,12 @@ void sequentialMode(uint8_t sNo, uint32_t period){
             }
 
             /* period between 2 phases */
-            startTick = xTaskGetTickCount();
-            do {
-                sumTicks = xTaskGetTickCount() - startTick;
-            } while (10 * sumTicks < timeDelay);
-            break;
-
+            // startTick = xTaskGetTickCount();
+            // do {
+            //     sumTicks = xTaskGetTickCount() - startTick;
+            // } while (10 * sumTicks < timeDelay);
+            // break;
+        break;
         default:
             ESP_LOGW("rgb","sequence number unknown????");
             break;
@@ -252,12 +259,21 @@ void sequentialMode(uint8_t sNo, uint32_t period){
     prevSNo = sNo;
 }
 
+
+
+float tempRed = 0;
+float tempGreen = 0;
+float tempBlue = 0;
+
 void originalMode(colors_t first, colors_t through, colors_t last, uint32_t period) {
     
-    static float tempRed;
-    static float tempGreen;
-    static float tempBlue;
-    
+    static float diffRed;
+    static float diffGreen;
+    static float diffBlue;
+
+    static uint8_t absBlueDiff;
+    static uint8_t absGreenDiff;
+    static uint8_t absRedDiff;
     static colors_t actualColor;
     static colors_t nextColor;
 
@@ -267,6 +283,14 @@ void originalMode(colors_t first, colors_t through, colors_t last, uint32_t peri
         resetOriginalFlag = false;
         actualColor = first;
         nextColor = through;
+
+        absRedDiff = (uint8_t)abs(actualColor.red - nextColor.red);
+        absGreenDiff = (uint8_t)abs(actualColor.green - nextColor.green);
+        absBlueDiff = (uint8_t)abs(actualColor.blue - nextColor.blue);
+
+        diffRed = (float)absRedDiff * periodOriginal/100;
+        diffGreen = (float)absGreenDiff * periodOriginal/100;
+        diffBlue = (float)absBlueDiff * periodOriginal/100;
     }
     else {
         /*  ALGHORITM DESCIPTION : 
@@ -276,15 +300,19 @@ void originalMode(colors_t first, colors_t through, colors_t last, uint32_t peri
         * 
         * Additionally, wait time should be calculated in order to the smallest value per each step.
         */
-        uint8_t absRedDiff = abs(actualColor.red - nextColor.red);
-        uint8_t absGreenDiff = abs(actualColor.green - nextColor.green);
-        uint8_t absBlueDiff = abs(actualColor.blue - nextColor.blue);
-        uint8_t lowestVal = (absRedDiff < absGreenDiff) ? (absRedDiff < absBlueDiff ? absRedDiff : absBlueDiff) : (absGreenDiff < absBlueDiff ? absGreenDiff : absBlueDiff);
+    //    ESP_LOGW("RGB","ACT and NEXT %d, %d, %d",actualColor.red, nextColor.red, actualColor.blue/*color[RED].value,color[GREEN].value,color[BLUE].value*/);
         
-        float diffRed = absRedDiff/lowestVal;
-        float diffGreen = absGreenDiff/lowestVal;
-        float diffBlue = absBlueDiff/lowestVal;
+        // ESP_LOGW("RGB","diff is: %d, %d, %d",absRedDiff,absGreenDiff,absBlueDiff);
+        // uint8_t lowestVal = (absRedDiff < absGreenDiff) ? (absRedDiff < absBlueDiff ? absRedDiff : absBlueDiff) : (absGreenDiff < absBlueDiff ? absGreenDiff : absBlueDiff);
+        // if (lowestVal == 0) { lowestVal = 1;} 
 
+
+        
+
+        // ESP_LOGI("RGB","real diff is: %.2f, %.2f, %.2f",diffRed,diffGreen,diffBlue);
+        // ESP_LOGI("RGB","ABS diff is: %d, %d, %d",absRedDiff,absGreenDiff,absBlueDiff);
+        // ESP_LOGE("RGB","PERIOD IS %.2f", (float)periodOriginal);
+        // ESP_LOGW("RGB","TEMP VALUES: %.2f, %.2f, %.2f",tempRed,tempGreen,tempBlue);
         bool isRedReady = false;
         bool isGreenReady = false;
         bool isBlueReady = false;
@@ -292,40 +320,71 @@ void originalMode(colors_t first, colors_t through, colors_t last, uint32_t peri
         // red:
         if (actualColor.red - nextColor.red > 0) {
             // --
-            tempRed -= diffRed;
+            if (actualColor.red - diffRed >= nextColor.red) {
+                actualColor.red -= diffRed;
+            }
+            else {
+                actualColor.red = nextColor.red;
+            }
+            
         }
-        else if (actualColor.red - nextColor.red > 0) {
+        else if (actualColor.red - nextColor.red < 0) {
             // ++
-            tempRed += diffRed;
+            if (actualColor.red + diffRed <= nextColor.red) {
+                actualColor.red += diffRed;
+            }
+            else {
+                actualColor.red = nextColor.red;
+            }
         }
         else {
             isRedReady = true;
         }
 
         // green
-        if (actualColor.red - nextColor.red > 0) {
+        if (actualColor.green - nextColor.green > 0) {
             // --
-            tempRed -= diffRed;
+            if (actualColor.green - diffGreen >= nextColor.green) {
+                actualColor.green -= diffGreen;
+            }
+            else {
+                actualColor.green = nextColor.green;
+            }
         }
-        else if (actualColor.red - nextColor.red > 0) {
+        else if (actualColor.green - nextColor.green < 0) {
             // ++
-            tempRed += diffRed;
+            if (actualColor.green + diffGreen <= nextColor.green) {
+                actualColor.green += diffGreen;
+            }
+            else {
+                actualColor.green = nextColor.green;
+            }
         }
         else {
-            isRedReady = true;
+            isGreenReady = true;
         }
 
         // blue
-        if (actualColor.red - nextColor.red > 0) {
+        if (actualColor.blue - nextColor.blue > 0) {
             // --
-            tempRed -= diffRed;
+            if (actualColor.blue - diffBlue >= nextColor.blue) {
+                actualColor.blue -= diffBlue;
+            }
+            else {
+                actualColor.blue = nextColor.blue;
+            }
         }
-        else if (actualColor.red - nextColor.red > 0) {
+        else if (actualColor.blue - nextColor.blue < 0) {
             // ++
-            tempRed += diffRed;
+            if (actualColor.blue + diffBlue <= nextColor.blue) {
+                actualColor.blue += diffBlue;
+            }
+            else {
+                actualColor.blue = nextColor.blue;
+            }
         }
         else {
-            isRedReady = true;
+            isBlueReady = true;
         }
 
         if (isRedReady && isGreenReady && isBlueReady) { 
@@ -339,14 +398,35 @@ void originalMode(colors_t first, colors_t through, colors_t last, uint32_t peri
                 case 1:
                     actualColor = first;
                     nextColor = through;
+                    absRedDiff = (uint8_t)abs(actualColor.red - nextColor.red);
+                    absGreenDiff = (uint8_t)abs(actualColor.green - nextColor.green);
+                    absBlueDiff = (uint8_t)abs(actualColor.blue - nextColor.blue);
+
+                    diffRed = (float)absRedDiff * periodOriginal/100;
+                    diffGreen = (float)absGreenDiff * periodOriginal/100;
+                    diffBlue = (float)absBlueDiff * periodOriginal/100;
                     break;
                 case 2:
                     actualColor = through;
                     nextColor = last;
+                    absRedDiff = (uint8_t)abs(actualColor.red - nextColor.red);
+                    absGreenDiff = (uint8_t)abs(actualColor.green - nextColor.green);
+                    absBlueDiff = (uint8_t)abs(actualColor.blue - nextColor.blue);
+
+                    diffRed = (float)absRedDiff * periodOriginal/100;
+                    diffGreen = (float)absGreenDiff * periodOriginal/100;
+                    diffBlue = (float)absBlueDiff * periodOriginal/100;
                     break;
                 case 3:
                     actualColor = last;
                     nextColor = first;
+                    absRedDiff = (uint8_t)abs(actualColor.red - nextColor.red);
+                    absGreenDiff = (uint8_t)abs(actualColor.green - nextColor.green);
+                    absBlueDiff = (uint8_t)abs(actualColor.blue - nextColor.blue);
+
+                    diffRed = (float)absRedDiff * periodOriginal/100;
+                    diffGreen = (float)absGreenDiff * periodOriginal/100;
+                    diffBlue = (float)absBlueDiff * periodOriginal/100;
                     break;
             } 
         }
@@ -356,17 +436,17 @@ void originalMode(colors_t first, colors_t through, colors_t last, uint32_t peri
 
     }
 
-    color[RED].value = tempRed;
-    color[GREEN].value = tempGreen;
-    color[BLUE].value = tempBlue;
+    color[RED].value = actualColor.red;
+    color[GREEN].value = actualColor.green;
+    color[BLUE].value = actualColor.blue;
 
-    uint32_t startTick = 0;
-    uint32_t sumTicks = 0;
-    uint32_t timeDelay = period/255;
-    startTick = xTaskGetTickCount();
-    do {
-        sumTicks = xTaskGetTickCount() - startTick;
-    } while (10 * sumTicks < timeDelay);
+    // uint32_t startTick = 0;
+    // uint32_t sumTicks = 0;
+    // uint32_t timeDelay = period/255;
+    // startTick = xTaskGetTickCount();
+    // do {
+    //     sumTicks = xTaskGetTickCount() - startTick;
+    // } while (10 * sumTicks < timeDelay);
 }
 
 
@@ -374,7 +454,12 @@ void createSequence(colors_t first, colors_t through, colors_t last, uint32_t pe
     baseRgbValues[0] = first;
     baseRgbValues[1] = through;
     baseRgbValues[2] = last;
-    periodOriginal = period;
+    tempRed = abs(baseRgbValues[0].red);
+    tempGreen = abs(baseRgbValues[0].green);
+    tempBlue = abs(baseRgbValues[0].blue);
+    periodOriginal = (uint16_t)period;
+    ESP_LOGI("RGB","PERIOD IS %d", periodOriginal);
+    // ESP_LOGI("RGB","sequence created");
     // in order to reload sequence.
     resetOriginalFlag = true;
 }
@@ -395,16 +480,19 @@ void rgbController_main(void *pvParameters) {
             uint32_t startTick = xTaskGetTickCount();
             uint32_t sumTicks=0;
             /* wait for the moment */
-            do {
-                sumTicks = xTaskGetTickCount() - startTick;
-            } while (10 * sumTicks < 100);
+            // do {
+            //     sumTicks = xTaskGetTickCount() - startTick;
+            // } while (10 * sumTicks < 100);
+            // vTaskDelay(pdMS_TO_TICKS(50));
         }
 
         else if (generalMode == 3) {     // Sequence mode
             sequentialMode(seqNo,  periodTime); 
         }
-        else {
-            printf("mode fault");
+        else if (generalMode == 6){
+            // printf("mode fault");
+            originalMode(baseRgbValues[0], baseRgbValues[1], baseRgbValues[2], periodOriginal);
+            // ESP_LOGW("RGB","ORIGINAL");
         }
 
         /* change values of duty cycle */
@@ -416,9 +504,15 @@ void rgbController_main(void *pvParameters) {
         ledc_update_duty(controllerCfg->ledc_timer->speed_mode, controllerCfg->ledc_channel[RED]->channel);
         ledc_update_duty(controllerCfg->ledc_timer->speed_mode, controllerCfg->ledc_channel[GREEN]->channel);
         ledc_update_duty(controllerCfg->ledc_timer->speed_mode, controllerCfg->ledc_channel[BLUE]->channel);
-        // printf("twoja statra to kopara\n");
-        ESP_LOGW("RGB","written %d, %d, %d",color[RED].value,color[GREEN].value,color[BLUE].value);
-        vTaskDelay(200);
+            // printf("twoja statra to kopara\n");
+        // ESP_LOGW("RGB","first %d, %d, %d",baseRgbValues[0].red, baseRgbValues[0].green, baseRgbValues[0].blue/*color[RED].value,color[GREEN].value,color[BLUE].value*/);
+        // vTaskDelay(pdMS_TO_TICKS(100));
+        // ESP_LOGW("RGB","second %d, %d, %d",baseRgbValues[1].red, baseRgbValues[1].green, baseRgbValues[1].blue/*color[RED].value,color[GREEN].value,color[BLUE].value*/);
+        // vTaskDelay(pdMS_TO_TICKS(100));
+        // ESP_LOGW("RGB","third %d, %d, %d",baseRgbValues[2].red, baseRgbValues[2].green, baseRgbValues[2].blue/*color[RED].value,color[GREEN].value,color[BLUE].value*/);
+        vTaskDelay(pdMS_TO_TICKS(RGBTaskDelay));
+        // ESP_LOGW("RGB","written %d, %d, %d",color[RED].value,color[GREEN].value,color[BLUE].value);
+        // vTaskDelay(pdMS_TO_TICKS(100));
     }
     
 }

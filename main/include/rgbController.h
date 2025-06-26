@@ -41,7 +41,7 @@ extern "C"{
      * @returns nothing.
      **/
     void actualizeMode(uint8_t redMode, uint8_t greenMode, uint8_t blueMode, uint8_t sequenceNo, uint32_t period);
-
+void actualizePeriod(uint16_t period);
     /**
      * @brief TODO!
      **/

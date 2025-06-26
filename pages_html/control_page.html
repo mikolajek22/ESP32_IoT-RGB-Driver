@@ -218,11 +218,20 @@
                 </div>
                 <h2 style="margin-left: 10px;">SEQUENCES:</h2>
                 <div class="button-row">
-                    <button id="seq_1" style="background-color: #00ffd5; font-size: 26px;" onclick="sendSeq('1')">SEQUENCE 1</button>
-                    <button id="seq_2" style="background-color: #00ffd5; font-size: 26px;" onclick="sendSeq('2')">SEQUENCE 2</button>
-                    <button id="seq_3" style="background-color: #00ffd5; font-size: 26px;" onclick="sendSeq('3')">SEQUENCE 3</button>
-                    <button id="seq_4" style="background-color: #00ffd5; font-size: 26px;" onclick="sendSeq('4')">SEQUENCE 3</button>
+                    <button id="seq_1" style="background-color: rgb(138, 20, 89); font-size: 26px;" onclick="sendSeq('1')">SEQUENCE 1</button>
+                    <button id="seq_2" style="background-color: rgb(138, 20, 89); font-size: 26px;" onclick="sendSeq('2')">SEQUENCE 2</button>
+                    <button id="seq_3" style="background-color: rgb(138, 20, 89); font-size: 26px;" onclick="sendSeq('3')">SEQUENCE 3</button>
+                    <button id="seq_4" style="background-color: rgb(138, 20, 89); font-size: 26px;" onclick="sendSeq('4')">SEQUENCE 3</button>
                 </div>
+                <h2 style="margin-left: 10px;">SET PERIOD TIME:</h2>
+                
+
+                <div style="display: inline; margin-left: 10px;">
+                    period <input id="period" type="number" min="1" max="10000" placeholder="ms" style="margin-right: 10px;"> ms
+                    <button id="applyPeriod" style="background-color: rgb(255, 75, 180); font-size: 26px; height: 40px; width: 200px; margin-left: 20px;" onclick="sendPeriod()">APPLY</button>
+                </div>
+
+
                 <h2 style="margin-left: 10px;">ORIGINAL SEQUENCES:</h2>
                 <div class="text-row">
                     <h3 style="margin-left: 10px;">FROM</h3>
@@ -244,10 +253,10 @@
                     <input id="B2" type="number" min="0" max="255" placeholder="B" style="margin-left: 50px;">
                     <input id="B3" type="number" min="0" max="255" placeholder="B" style="margin-left: 55px;">
                 </div>
-                <h3 style="margin-left: 10px;">PERIOD TIME</h3>
+                <h3 style="margin-left: 10px;">ORIGINAL SEQUENCE SPEED (1 % - 100 %)</h3>
                 <div style="display: inline; margin-left: 10px;">
-                    time<input id="time" type="number" min="0" max="255" placeholder="ms" style="margin-right: 10px;">ms
-                    <button id="apply" style="background-color: #00ffd5; font-size: 26px; height: 40px; width: 200px; margin-left: 20px;" onclick="sendOriginal()">APPLY</button>
+                    speed <input id="time" type="number" min="1" max="100" placeholder="%" style="margin-right: 10px;">%
+                    <button id="apply" style="background-color: rgb(138, 20, 89); font-size: 26px; height: 40px; width: 200px; margin-left: 20px;" onclick="sendOriginal()">APPLY</button>
                 </div>
                 <br>
                 
@@ -325,7 +334,7 @@
                 const B2 = parseInt(document.getElementById('B2').value) || 0;
                 const B3 = parseInt(document.getElementById('B3').value) || 0;
 
-                const time = parseInt(document.getElementById('time')) || 1000;
+                const time = parseInt(document.getElementById('time').value) || 1;
                 fetch('/RGB?mode=original', {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
@@ -361,48 +370,59 @@
                     }
                 })
             }
+
+            function sendPeriod() {
+                const period = parseInt(document.getElementById('period').value) || 100;
+                fetch('/RGB?mode=period', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        period: period
+                    })
+                })
+            }
             function changeDisplay(btn){
                 if (btn == 1) {
-                    document.getElementById("seq_1").style.backgroundColor="#0f5246";
-                    document.getElementById("seq_2").style.backgroundColor="#00ffd5";
-                    document.getElementById("seq_3").style.backgroundColor="#00ffd5";
-                    document.getElementById("seq_4").style.backgroundColor="#00ffd5";
-                    document.getElementById("apply").style.backgroundColor="#00ffd5";
+                    document.getElementById("seq_1").style.backgroundColor="rgb(255, 75, 180)";
+                    document.getElementById("seq_2").style.backgroundColor="rgb(138, 20, 89)";
+                    document.getElementById("seq_3").style.backgroundColor="rgb(138, 20, 89)";
+                    document.getElementById("seq_4").style.backgroundColor="rgb(138, 20, 89)";
+                    document.getElementById("apply").style.backgroundColor="rgb(138, 20, 89)";
                 }
                 else if(btn == 2){
-                    document.getElementById("seq_1").style.backgroundColor="#00ffd5";
-                    document.getElementById("seq_2").style.backgroundColor="#0f5246";
-                    document.getElementById("seq_3").style.backgroundColor="#00ffd5";
-                    document.getElementById("seq_4").style.backgroundColor="#00ffd5";
-                    document.getElementById("apply").style.backgroundColor="#00ffd5";
+                    document.getElementById("seq_1").style.backgroundColor="rgb(138, 20, 89)";
+                    document.getElementById("seq_2").style.backgroundColor="rgb(255, 75, 180)";
+                    document.getElementById("seq_3").style.backgroundColor="rgb(138, 20, 89)";
+                    document.getElementById("seq_4").style.backgroundColor="rgb(138, 20, 89)";
+                    document.getElementById("apply").style.backgroundColor="rgb(138, 20, 89)";
                 }
                 else if(btn == 3){
-                    document.getElementById("seq_1").style.backgroundColor="#00ffd5";
-                    document.getElementById("seq_2").style.backgroundColor="#00ffd5";
-                    document.getElementById("seq_3").style.backgroundColor="#0f5246";
-                    document.getElementById("seq_4").style.backgroundColor="#00ffd5";
-                    document.getElementById("apply").style.backgroundColor="#00ffd5";
+                    document.getElementById("seq_1").style.backgroundColor="rgb(138, 20, 89)";
+                    document.getElementById("seq_2").style.backgroundColor="rgb(138, 20, 89)";
+                    document.getElementById("seq_3").style.backgroundColor="rgb(255, 75, 180)";
+                    document.getElementById("seq_4").style.backgroundColor="rgb(138, 20, 89)";
+                    document.getElementById("apply").style.backgroundColor="rgb(138, 20, 89)";
                 }
                 else if(btn == 4){
-                    document.getElementById("seq_1").style.backgroundColor="#00ffd5";
-                    document.getElementById("seq_2").style.backgroundColor="#00ffd5";
-                    document.getElementById("seq_3").style.backgroundColor="#00ffd5";
-                    document.getElementById("seq_4").style.backgroundColor="#0f5246";
-                    document.getElementById("apply").style.backgroundColor="#00ffd5";
+                    document.getElementById("seq_1").style.backgroundColor="rgb(138, 20, 89)";
+                    document.getElementById("seq_2").style.backgroundColor="rgb(138, 20, 89)";
+                    document.getElementById("seq_3").style.backgroundColor="rgb(138, 20, 89)";
+                    document.getElementById("seq_4").style.backgroundColor="rgb(255, 75, 180)";
+                    document.getElementById("apply").style.backgroundColor="rgb(138, 20, 89)";
                 }   
                 else if(btn == 5){
-                    document.getElementById("seq_1").style.backgroundColor="#00ffd5";
-                    document.getElementById("seq_2").style.backgroundColor="#00ffd5";
-                    document.getElementById("seq_3").style.backgroundColor="#00ffd5";
-                    document.getElementById("seq_4").style.backgroundColor="#00ffd5";
-                    document.getElementById("apply").style.backgroundColor="#0f5246";
+                    document.getElementById("seq_1").style.backgroundColor="rgb(138, 20, 89)";
+                    document.getElementById("seq_2").style.backgroundColor="rgb(138, 20, 89)";
+                    document.getElementById("seq_3").style.backgroundColor="rgb(138, 20, 89)";
+                    document.getElementById("seq_4").style.backgroundColor="rgb(138, 20, 89)";
+                    document.getElementById("apply").style.backgroundColor="rgb(255, 75, 180)";
                 }
                 else{
-                    document.getElementById("seq_1").style.backgroundColor="#00ffd5";
-                    document.getElementById("seq_2").style.backgroundColor="#00ffd5";
-                    document.getElementById("seq_3").style.backgroundColor="#00ffd5";
-                    document.getElementById("seq_4").style.backgroundColor="#00ffd5";
-                    document.getElementById("apply").style.backgroundColor="#00ffd5";
+                    document.getElementById("seq_1").style.backgroundColor="rgb(138, 20, 89)";
+                    document.getElementById("seq_2").style.backgroundColor="rgb(138, 20, 89)";
+                    document.getElementById("seq_3").style.backgroundColor="rgb(138, 20, 89)";
+                    document.getElementById("seq_4").style.backgroundColor="rgb(138, 20, 89)";
+                    document.getElementById("apply").style.backgroundColor="rgb(138, 20, 89)";
                 }
             }
         </script>

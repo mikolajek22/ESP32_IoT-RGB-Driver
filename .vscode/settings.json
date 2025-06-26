@@ -20,7 +20,18 @@
     "esp_wifi.h": "c",
     "semphr.h": "c",
     "freertos.h": "c",
-    "led.h": "c"
+    "led.h": "c",
+    "charconv": "cpp",
+    "chrono": "cpp",
+    "optional": "cpp",
+    "format": "cpp",
+    "ratio": "cpp",
+    "system_error": "cpp",
+    "array": "cpp",
+    "functional": "cpp",
+    "tuple": "cpp",
+    "type_traits": "cpp",
+    "utility": "cpp"
   },
   "idf.adapterTargetName": "esp32"
 }
