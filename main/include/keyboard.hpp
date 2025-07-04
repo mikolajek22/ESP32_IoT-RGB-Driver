@@ -18,6 +18,12 @@ class KEYBOARD {
         void keyboard_btn3_pressed();
         void keyboard_btn4_pressed();
         void keyboard_btn5_pressed();
+
+        void keyboard_btn1_released();
+        void keyboard_btn2_released();
+        void keyboard_btn3_released();
+        void keyboard_btn4_released();
+        void keyboard_btn5_released();
 };
 
 #endif

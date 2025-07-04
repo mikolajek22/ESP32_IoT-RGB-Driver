@@ -39,11 +39,14 @@
 #include "oled_controller.h"
 #include "keyboard.h"
 #include "led.h"
+
+/* RGB STRIP Pins */
 #define RED_LED_PIN         GPIO_NUM_18
 #define GREEN_LED_PIN       GPIO_NUM_19
 #define BLUE_LED_PIN        GPIO_NUM_17
 
 #define COLORS_AMOUNT       3
+
 
 #define LD1 GPIO_NUM_4
 #define LD2 GPIO_NUM_27
@@ -111,7 +114,7 @@ static void init_hw(void) {
 
     /* BTN CONFIG */
     gpio_config_t btn_config = {
-        .intr_type = GPIO_INTR_NEGEDGE,
+        .intr_type = GPIO_INTR_ANYEDGE,//GPIO_INTR_NEGEDGE,
         .mode = GPIO_MODE_INPUT,
         .pin_bit_mask = (1ULL << BTN1_PIN) | (1ULL << BTN2_PIN) | (1ULL << BTN3_PIN) | (1ULL << BTN4_PIN) | (1ULL << BTN5_PIN),
         .pull_up_en = GPIO_PULLUP_ENABLE,
@@ -176,6 +179,7 @@ void app_main()
         ESP_LOGI(TAG, "LFS mounted successfully");
         /* Initialize LEDC timer to control RGB with PWM */
         init_hw();
+        led_init();
         /* Read configuration file in order to set up static IP address, subnet mast etc. */
         startup_ReadConfiguration();
 
@@ -232,20 +236,65 @@ void app_main()
         uint32_t gpioAction = 0;
         switch (gpio_num) {
             case BTN1_PIN:
-                gpioAction = BTN_1_PRESSED;
+                if (!gpio_get_level(BTN1_PIN)) {
+                    gpioAction = BTN_1_PRESSED;
+                }
+                else {
+                    gpioAction = BTN_1_RELEASED;
+                }
+                
                 break;
             case BTN2_PIN:
-                gpioAction = BTN_2_PRESSED;
+                if (!gpio_get_level(BTN2_PIN)) {
+                    gpioAction = BTN_2_PRESSED;
+                }
+                else {
+                    gpioAction = BTN_2_RELEASED;
+                }
+                // gpioAction = BTN_2_PRESSED;
                 break;
             case BTN3_PIN:
-                gpioAction = BTN_3_PRESSED;
+                if (!gpio_get_level(BTN3_PIN)) {
+                    gpioAction = BTN_3_PRESSED;
+                }
+                else {
+                    gpioAction = BTN_3_RELEASED;
+                }
+                // gpioAction = BTN_3_PRESSED;
                 break;
             case BTN4_PIN:
-                gpioAction = BTN_4_PRESSED;
+                if (!gpio_get_level(BTN4_PIN)) {
+                    gpioAction = BTN_4_PRESSED;
+                }
+                else {
+                    gpioAction = BTN_4_RELEASED;
+                }
+                // gpioAction = BTN_4_PRESSED;
                 break;
             case BTN5_PIN:
-                gpioAction = BTN_5_PRESSED;
+                if (!gpio_get_level(BTN5_PIN)) {
+                    gpioAction = BTN_5_PRESSED;
+                }
+                else {
+                    gpioAction = BTN_5_RELEASED;
+                }
+                // gpioAction = BTN_5_PRESSED;
                 break;
+            // case BTN1_PIN:
+            //     gpioAction = BTN_1_PRESSED;
+            //     break;
+            // case BTN2_PIN:
+            //     gpioAction = BTN_2_PRESSED;
+            //     break;
+            // case BTN3_PIN:
+            //     gpioAction = BTN_3_PRESSED;
+            //     break;
+            // case BTN4_PIN:
+            //     gpioAction = BTN_4_PRESSED;
+            //     break;
+            // case BTN5_PIN:
+            //     gpioAction = BTN_5_PRESSED;
+            //     break;
 
         }
         xQueueSendFromISR(keyboardQueue, &gpioAction, NULL);

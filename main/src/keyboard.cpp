@@ -4,6 +4,7 @@
 #include "esp_log.h"
 #include "driver/gpio.h"
 #include "oled_controller.hpp"
+#include "led.h"
 KEYBOARD keyboard;
 extern QueueHandle_t keyboardQueue;
 static const char *TAG = "KEYBOARD";
@@ -66,6 +67,57 @@ void keyboard_main_task() {
                         vTaskDelay(pdMS_TO_TICKS(10));
                     }
                     break;
+
+                    case BTN_1_RELEASED:
+                    while (gpio_get_level(BTN1_PIN)) {
+                        nowTick = xTaskGetTickCount();
+                        if (nowTick - prevTick > debouncingTick) {
+                            keyboard.keyboard_btn1_released();
+                            break;
+                        }
+                        vTaskDelay(pdMS_TO_TICKS(10));
+                    }
+                break;
+                case BTN_2_RELEASED:
+                    while (gpio_get_level(BTN2_PIN)) {
+                        nowTick = xTaskGetTickCount();
+                        if (nowTick - prevTick > debouncingTick) {
+                            keyboard.keyboard_btn2_released();
+                            break;
+                        }
+                        vTaskDelay(pdMS_TO_TICKS(10));
+                    }
+                break;
+                case BTN_3_RELEASED:
+                    while (gpio_get_level(BTN3_PIN)) {
+                        nowTick = xTaskGetTickCount();
+                        if (nowTick - prevTick > debouncingTick) {
+                            keyboard.keyboard_btn3_released();
+                            break;
+                        }
+                        vTaskDelay(pdMS_TO_TICKS(10));
+                    }
+                break;
+                case BTN_4_RELEASED:
+                    while (gpio_get_level(BTN4_PIN)) {
+                        nowTick = xTaskGetTickCount();
+                        if (nowTick - prevTick > debouncingTick) {
+                            keyboard.keyboard_btn4_released();
+                            break;
+                        }
+                        vTaskDelay(pdMS_TO_TICKS(10));
+                    }
+                break;
+                case BTN_5_RELEASED:
+                    while (gpio_get_level(BTN5_PIN)) {
+                        nowTick = xTaskGetTickCount();
+                        if (nowTick - prevTick > debouncingTick) {
+                            keyboard.keyboard_btn5_released();
+                            break;
+                        }
+                        vTaskDelay(pdMS_TO_TICKS(10));
+                    }
+                    break;
                 default:
                     ESP_LOGE(TAG, "Undefined Value");
                 break;
@@ -76,6 +128,7 @@ void keyboard_main_task() {
 
 /* UP*/
 void KEYBOARD::keyboard_btn1_pressed() {
+    led_set(LED_ERROR);
     if (menu.actualPage == TIME_PAGE || menu.actualPage == NETWORK_PAGE) {
         menu.actualPage = MENU_PAGE;
     }
@@ -89,6 +142,7 @@ void KEYBOARD::keyboard_btn1_pressed() {
 
 /* MIDDLE */
 void KEYBOARD::keyboard_btn2_pressed() {
+    led_set(LED_ERROR);
     if (menu.actualPage == TIME_PAGE) {
         menu.actualPage = MENU_PAGE;
     }
@@ -101,6 +155,7 @@ void KEYBOARD::keyboard_btn2_pressed() {
 
 /* DOWN */
 void KEYBOARD::keyboard_btn3_pressed() {
+    led_set(LED_ERROR);
     if (menu.actualPage == TIME_PAGE) {
         menu.actualPage = MENU_PAGE;
     }
@@ -114,6 +169,7 @@ void KEYBOARD::keyboard_btn3_pressed() {
 
 /* LEFT */
 void KEYBOARD::keyboard_btn4_pressed() {
+    led_set(LED_ERROR);
     if (menu.actualPage == TIME_PAGE) {
         menu.actualPage = MENU_PAGE;
     }
@@ -126,6 +182,7 @@ void KEYBOARD::keyboard_btn4_pressed() {
 
 /* RIGHT */
 void KEYBOARD::keyboard_btn5_pressed() {
+    led_set(LED_ERROR);
     if (menu.actualPage == TIME_PAGE) {
         menu.actualPage = MENU_PAGE;
     }
@@ -136,3 +193,18 @@ void KEYBOARD::keyboard_btn5_pressed() {
     return;
 }
 
+void KEYBOARD::keyboard_btn1_released() {
+    led_reset(LED_ERROR);
+}
+void KEYBOARD::keyboard_btn2_released() {
+    led_reset(LED_ERROR);
+}
+void KEYBOARD::keyboard_btn3_released() {
+    led_reset(LED_ERROR);
+}
+void KEYBOARD::keyboard_btn4_released() {
+    led_reset(LED_ERROR);
+}
+void KEYBOARD::keyboard_btn5_released() {
+    led_reset(LED_ERROR);
+}

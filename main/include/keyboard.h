@@ -11,6 +11,11 @@ extern "C" {
         BTN_3_PRESSED,
         BTN_4_PRESSED,
         BTN_5_PRESSED,
+        BTN_1_RELEASED,
+        BTN_2_RELEASED,
+        BTN_3_RELEASED,
+        BTN_4_RELEASED,
+        BTN_5_RELEASED,
     } btn_Status_t;
 #ifdef __cplusplus
 }
