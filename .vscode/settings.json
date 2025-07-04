@@ -31,7 +31,11 @@
     "functional": "cpp",
     "tuple": "cpp",
     "type_traits": "cpp",
-    "utility": "cpp"
+    "utility": "cpp",
+    "sntp_sync.h": "c",
+    "timer.h": "c",
+    "main.h": "c",
+    "sockets.h": "c"
   },
   "idf.adapterTargetName": "esp32"
 }

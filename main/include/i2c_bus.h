@@ -7,7 +7,6 @@ extern "C" {
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-// #include "oled_controller.h"
 
 #include "driver/i2c_master.h"
 

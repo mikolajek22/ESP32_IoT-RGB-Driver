@@ -41,7 +41,7 @@ extern "C"{
      * @returns nothing.
      **/
     void actualizeMode(uint8_t redMode, uint8_t greenMode, uint8_t blueMode, uint8_t sequenceNo, uint32_t period);
-void actualizePeriod(uint16_t period);
+    void actualizePeriod(uint16_t period);
     /**
      * @brief TODO!
      **/
@@ -52,6 +52,7 @@ void actualizePeriod(uint16_t period);
      * @param pvParameters rgbController_t type, while calling function it must be forwarded configured 3 x PWM channels and one Timer. Main function is responsible for setting values to PWM pins.
      **/
     void rgbController_main(void *pvParameters);
+    void rgbController_init();
 }
 
 class Color {

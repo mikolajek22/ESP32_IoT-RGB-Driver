@@ -33,6 +33,39 @@ typedef struct {
     ledc_timer_config_t *ledc_timer;
 } rgbController_t;
 
+static rgbController_t rgbParams;
+#define RED_LED_PIN         GPIO_NUM_18
+#define GREEN_LED_PIN       GPIO_NUM_19
+#define BLUE_LED_PIN        GPIO_NUM_17
+#define COLORS_AMOUNT       3
+uint8_t const COLOR_PINS[3] = {RED_LED_PIN, GREEN_LED_PIN, BLUE_LED_PIN};
+void rgbController_init() {
+    static ledc_channel_config_t ledc_channel[3];
+    static ledc_timer_config_t ledc_timer = {
+        .speed_mode = LEDC_HIGH_SPEED_MODE,
+        .duty_resolution = LEDC_TIMER_8_BIT,
+        .timer_num = LEDC_TIMER_0,
+        .freq_hz = 1000,
+        .clk_cfg = LEDC_AUTO_CLK,
+    };
+    
+    ledc_timer_config(&ledc_timer);
+
+    for(int i=0;i< COLORS_AMOUNT ;i++) {
+        ledc_channel[i].channel = (ledc_channel_t)(LEDC_CHANNEL_0 + i);
+        ledc_channel[i].duty = 0;
+        ledc_channel[i].gpio_num = COLOR_PINS[i];
+        ledc_channel[i].speed_mode = LEDC_HIGH_SPEED_MODE;
+        ledc_channel[i].hpoint = 0;
+        ledc_channel[i].timer_sel = LEDC_TIMER_0;
+        ledc_channel_config(&ledc_channel[i]);
+    }
+    rgbParams.ledc_channel[0] = &ledc_channel[0];
+    rgbParams.ledc_channel[1] = &ledc_channel[1];
+    rgbParams.ledc_channel[2] = &ledc_channel[2];
+    rgbParams.ledc_timer      = &ledc_timer;
+}
+
 void actualizePeriod(uint16_t period) {
     RGBTaskDelay = period;
     ESP_LOGI("RGB", "RECEIVED PERIOD IS: %d", period);
@@ -465,8 +498,8 @@ void createSequence(colors_t first, colors_t through, colors_t last, uint32_t pe
 }
 
 void rgbController_main(void *pvParameters) {
-    static rgbController_t *controllerCfg = static_cast<rgbController_t*>(pvParameters);
-
+    // static rgbController_t *controllerCfg = static_cast<rgbController_t*>(pvParameters);
+    rgbController_t *controllerCfg = &rgbParams;
     while (true) {
         color[RED].mode = redColorHandler.getMode();
         color[GREEN].mode = greenColorHandler.getMode();

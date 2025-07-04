@@ -70,11 +70,11 @@ void SSD1306::SSD1306_DrawPixel(int16_t x, int16_t y, uint8_t color) {
 
 void SSD1306::SSD1306_display() {
     this->SSD1306_Cmd(SSD1306_PAGEADDR);
-    this->SSD1306_Cmd(0);                 // Page start address
-    this->SSD1306_Cmd(7);              // 0xff Page end (not really, but works here)
+    this->SSD1306_Cmd(0);                   // Page start address
+    this->SSD1306_Cmd(7);                   // 0xff Page end (not really, but works here)
     this->SSD1306_Cmd(SSD1306_COLUMNADDR);
-    this->SSD1306_Cmd(0);                 // Column start address
-    this->SSD1306_Cmd(SSD1306_WIDTH - 1);    // Column end address
+    this->SSD1306_Cmd(0);                   // Column start address
+    this->SSD1306_Cmd(SSD1306_WIDTH - 1);   // Column end address
     
     this->SSD1306_Data(ssd1306Buffer, SSD1306_BUFFER_SIZE);
 }

@@ -50,4 +50,3 @@ extern espConfiguration_t defaultCfg;
  * @returns ESP_OK if configuration done properly, else ESP_FAIL.
  **/
 esp_err_t startup_ReadConfiguration();
-void Set_SystemTime_SNTP();

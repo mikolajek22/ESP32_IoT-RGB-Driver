@@ -2,8 +2,7 @@
 #include "oled_controller.hpp"
 #include "esp_err.h"
 #include "i2c_bus.h"
-
-
+#include "http_handlers.h"
 
 #define WHITE   SSD1306_COLOR_WHITE
 #define BLACK   SSD1306_COLOR_BLACK
@@ -20,7 +19,11 @@
 #define MAX_TIME_STR_LEN    9
 #define MAX_IP_STR_LEN      16
 
-
+typedef enum {
+  IP_ADDR,
+  NETMASK
+} net_disp_t;
+static net_disp_t net_disp;
 menu_t menu;
 OLED_CONTROLLER *controller;
 uint8_t dispIpAddr[4];
@@ -115,7 +118,6 @@ void OLED_CONTROLLER::oled_controller_network_menu() {
   const uint8_t MAX_CELL_POINTER = 2;
   const uint8_t MIN_CELL_POINTER = 0;
 
-  /* LIMITS - DO IT BETTER */
   if (menu.cellPointer < MIN_CELL_POINTER) menu.cellPointer = MAX_CELL_POINTER;
   if (menu.cellPointer > MAX_CELL_POINTER) menu.cellPointer = MIN_CELL_POINTER;
 
@@ -130,20 +132,22 @@ void OLED_CONTROLLER::oled_controller_network_menu() {
 }
 
 void OLED_CONTROLLER::oled_controller_saver_page() {
-  
+  // TODO...
   return;
 }
 
 
 void OLED_CONTROLLER::oled_controller_ipAddr_page() {
   char ipAddr[MAX_IP_STR_LEN];
-
-  /* LIMITS - DO IT BETTER */
-  
   this->oled_controller_drawFrame();
   this->oled_triangleCell(2);
 
-  snprintf(ipAddr, MAX_IP_STR_LEN, "%d.%d.%d.%d", dispIpAddr[0], dispIpAddr[1], dispIpAddr[2], dispIpAddr[3]);
+  if (net_disp == IP_ADDR) {
+    snprintf(ipAddr, sizeof(ipAddr), "%d.%d.%d.%d", IP2STR(&connectionInfo.ip));
+  }
+  else {
+    snprintf(ipAddr, sizeof(ipAddr), "%d.%d.%d.%d", IP2STR(&connectionInfo.netmask));
+  }
 
   gfx->GFX_DrawString(MENU_X_OFFSET, LINE_Y_OFFSET, "ip address:", WHITE, BLACK);
   gfx->GFX_DrawString(MENU_X_OFFSET, LINE_Y_OFFSET + MENU_Y_DIFF, ipAddr, WHITE, BLACK);
@@ -170,8 +174,6 @@ void OLED_CONTROLLER::oled_controller_reboot_page() {
   leftToReboot--;
 }
 
-
-
 void OLED_CONTROLLER::oled_accept_cell() {
   if (menu.actualPage == MENU_PAGE) {
     switch (menu.cellPointer) {
@@ -189,17 +191,11 @@ void OLED_CONTROLLER::oled_accept_cell() {
   else if (menu.actualPage == NETWORK_PAGE) {
     switch (menu.cellPointer) {
       case 0:
-        dispIpAddr[0] = 192;
-        dispIpAddr[1] = 168;
-        dispIpAddr[2] = 0;
-        dispIpAddr[3] = 99;
+        net_disp = IP_ADDR;
         menu.actualPage = IP_ADDR_PAGE;
       break;
       case 1:
-        dispIpAddr[0] = 255;
-        dispIpAddr[1] = 255;
-        dispIpAddr[2] = 255;
-        dispIpAddr[3] = 0;
+        net_disp = NETMASK;
         menu.actualPage = IP_ADDR_PAGE;
       break;
       case 2:
@@ -214,8 +210,6 @@ void OLED_CONTROLLER::oled_accept_cell() {
   else {
     menu.actualPage = TIME_PAGE;
   }
-
-
   menu.cellPointer = 0; 
   return;
 }

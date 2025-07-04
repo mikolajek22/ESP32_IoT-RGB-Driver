@@ -3,12 +3,11 @@
 
 #include "stdint.h"
 
-
-
-// typedef struct {
-//     uint8_t pin;
-//     uint8_t state;
-// } button_t;
+#define BTN1_PIN            GPIO_NUM_23 
+#define BTN2_PIN            GPIO_NUM_25
+#define BTN3_PIN            GPIO_NUM_26
+#define BTN4_PIN            GPIO_NUM_5
+#define BTN5_PIN            GPIO_NUM_16
 
 class KEYBOARD {
     private:

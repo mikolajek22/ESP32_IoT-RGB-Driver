@@ -3,6 +3,7 @@
 #include "esp_heap_caps.h" 
 #include "esp_log.h"
 #include <inttypes.h>
+#include "driver/timer.h"
 
 /* diagnostic info */
 typedef struct {
@@ -13,6 +14,26 @@ typedef struct {
     uint32_t uptime;
 } diagnosticInfo_t;
 diagnosticInfo_t diagnosticInfo;
+
+bool IRAM_ATTR timer_callback(void);
+
+void diagnostic_init() {
+    /* GPTimer initialization */
+    timer_config_t timer_config = {
+        .divider = 80,
+        .counter_dir = TIMER_COUNT_UP,
+        .counter_en = TIMER_PAUSE,
+        .alarm_en = TIMER_ALARM_EN,
+        .auto_reload = true,
+    };
+    timer_init(TIMER_GROUP_0, TIMER_0, &timer_config);
+    /* diagnostic status will be displayed every 5 seconds (in logs) */
+    timer_set_alarm_value(TIMER_GROUP_0, TIMER_0, 5000000);
+    timer_enable_intr(TIMER_GROUP_0, TIMER_0);
+    timer_isr_callback_add(TIMER_GROUP_0, TIMER_0, timer_callback, NULL, 0);
+    timer_start(TIMER_GROUP_0, TIMER_0);
+
+}
 
 void diagnostic_main(void) {
     int signal;
@@ -36,3 +57,9 @@ void diagnostic_main(void) {
         }   
     }
 }
+
+    bool IRAM_ATTR timer_callback(void) {
+        int signal = 1;
+        xQueueSendFromISR(timerQueue, &signal, NULL);
+        return true;
+    }

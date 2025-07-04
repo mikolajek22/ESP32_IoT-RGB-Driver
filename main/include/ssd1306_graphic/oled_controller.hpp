@@ -26,7 +26,7 @@ extern menu_t menu;
 static i2c_bus_device_t i2c_ssd1306 = {
     .dev_cfg = {
         .dev_addr_length    = I2C_ADDR_BIT_LEN_7,
-        .device_address    = SSD1306_ADDR,
+        .device_address     = SSD1306_ADDR,
         .scl_speed_hz       = 100000,
     },
 };

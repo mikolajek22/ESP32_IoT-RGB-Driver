@@ -2,8 +2,8 @@
 #include "fs.h"
 #include "ctype.h"
 
-#define CONFIG_ESP_WIFI_SSID        "Zyxel_96C1"        
-#define CONFIG_ESP_WIFI_PASSWORD    "M7KNTYLG7K"  
+#define CONFIG_ESP_WIFI_SSID        "ERROR"        
+#define CONFIG_ESP_WIFI_PASSWORD    "ERROR"  
 
 #define SETTING_FILE_NAME           "settings.json"
 
@@ -12,7 +12,7 @@
 #define PARSER_INVALID_VALUE   -10
 
 static const char *TAG = "Startup";
-static const char *TAG_NTP = "NtpService";
+
 static const uint8_t defaultIpAddr[4]   = {192, 168, 0, 10};
 static const uint8_t defaultMaskAddr[4] = {255, 255, 255, 0};
 static const uint8_t defaultGwAddr[4]   = {192, 168, 0, 10};
@@ -93,7 +93,7 @@ esp_err_t startup_ReadConfiguration() {
                 strncpy(defaultCfg.author, defaultCfgJson.author, strlen(defaultCfgJson.author));
                 strncpy(defaultCfg.mode, defaultCfgJson.mode, strlen(defaultCfgJson.mode));
                 strncpy(defaultCfg.date, defaultCfgJson.date, strlen(defaultCfgJson.date));
-                if (strlen(defaultCfgJson.wifiName)>0) {
+                if (strlen(defaultCfgJson.wifiName) > 0) {
                     strncpy(defaultCfg.wifiName, defaultCfgJson.wifiName, strlen(defaultCfgJson.wifiName));
                 }
                 else {
@@ -129,8 +129,9 @@ esp_err_t startup_ReadConfiguration() {
 
 
 int paresAddrStr2Int(uint8_t* addr, const char* buffer){
-    uint8_t offset = 0;
-    char temp[4] = {0};
+    uint8_t offset  = 0;
+    char temp[4]    = {0};
+
     while (buffer[offset] != '\0' && buffer[offset] != '.') {
         if (isdigit((unsigned char)buffer[offset])){
             temp[offset] = buffer[offset];
@@ -140,8 +141,9 @@ int paresAddrStr2Int(uint8_t* addr, const char* buffer){
             return PARSER_NOT_NUMBER;
         }  
     }
+
     int value = atoi(temp);
-    if (value > 255 || value < 0){
+    if (value > 255 || value < 0) {
         return PARSER_INVALID_VALUE;
     }
     *addr = (uint8_t*)value;

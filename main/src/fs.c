@@ -40,11 +40,9 @@ esp_err_t fs_openFile(uint8_t fID, char* fName, char* permission) {
     if (arrFiles[fID].open == FILE_CLOSED){
         arrFiles[fID].file = fopen(fileName, permission);
         arrFiles[fID].open = FILE_OPENED;
-        // ESP_LOGI(LOG_TAG, "File opened!");
         ret = ESP_OK;
     }
     else {
-        // ESP_LOGE(LOG_TAG, "File opening error - file already opened!");
         ret = ESP_FAIL;
     }
     xSemaphoreGive(fileMutex);
@@ -56,11 +54,9 @@ esp_err_t fs_closeFile(uint8_t fID) {
     if (arrFiles[fID].open == FILE_OPENED){
         fclose(arrFiles[fID].file);
         arrFiles[fID].open = FILE_CLOSED;
-        // ESP_LOGI(LOG_TAG, "File closed!");
         ret = ESP_OK;
     }
     else {
-        // ESP_LOGE(LOG_TAG, "File already closed");
         ret = ESP_FAIL;
     }
     xSemaphoreGive(fileMutex);
@@ -69,7 +65,6 @@ esp_err_t fs_closeFile(uint8_t fID) {
 
 // Mounting file sys
 esp_err_t fs_mount(void){
-    ESP_LOGI(LOG_TAG, "Initializing Little File System");
     esp_err_t ret = esp_vfs_littlefs_register(&conf);
 
     if (ret == ESP_OK){
@@ -94,7 +89,6 @@ size_t fs_readFile(uint8_t fID, char* fName, char* buffer, size_t offest){
         ret = readBytes;
     }
     else {
-        // ESP_LOGE(LOG_TAG, "File is null!");
          ret = ESP_FAIL;
     }
     xSemaphoreGive(fileMutex);
@@ -112,7 +106,6 @@ size_t fs_writeFile(uint8_t fID, char* fName, char* buffer, uint16_t writeSize){
         ret = writtenBytes;
     } 
     else {
-        // ESP_LOGE(LOG_TAG, "write file File is null!");
         ret = ESP_FAIL;
     }
     xSemaphoreGive(fileMutex);
