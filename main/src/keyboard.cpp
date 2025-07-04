@@ -25,6 +25,7 @@ void keyboard_init() {
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "gpio_install_isr_service failed: %s\n", esp_err_to_name(err));
     }
+
     gpio_isr_handler_add(BTN1_PIN, btn_isr_iqr, (void*) BTN1_PIN);
     gpio_isr_handler_add(BTN2_PIN, btn_isr_iqr, (void*) BTN2_PIN);
     gpio_isr_handler_add(BTN3_PIN, btn_isr_iqr, (void*) BTN3_PIN);
@@ -32,7 +33,7 @@ void keyboard_init() {
     gpio_isr_handler_add(BTN5_PIN, btn_isr_iqr, (void*) BTN5_PIN); 
 }
 
-void keyboard_main_task() {
+void keyboard_main_task(void *pvParameters) {
     while(1) {
         int btnNo;
         TickType_t nowTick              = 0;

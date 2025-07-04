@@ -16,7 +16,8 @@ Color blueColorHandler;
 typedef struct color_t{
     uint8_t mode;
     uint8_t value;
-};
+} color_t;
+
 color_t color[3];
 uint8_t generalMode = false;
 uint32_t periodTime;
@@ -24,7 +25,7 @@ uint8_t seqNo = 0;
 uint16_t RGBTaskDelay = 100;
 
 // original sequence stats
-colors_t baseRgbValues[3] = {0};
+colors_t baseRgbValues[3] = {0, 0, 0};
 uint16_t periodOriginal = 1;
 bool resetOriginalFlag;
 
@@ -47,6 +48,7 @@ void rgbController_init() {
         .timer_num = LEDC_TIMER_0,
         .freq_hz = 1000,
         .clk_cfg = LEDC_AUTO_CLK,
+        .deconfigure = false,
     };
     
     ledc_timer_config(&ledc_timer);
@@ -87,6 +89,7 @@ void actualizeMode(uint8_t redMode, uint8_t greenMode, uint8_t blueMode, uint8_t
 }
 
 void sequentialMode(uint8_t sNo, uint32_t period){
+
     static uint8_t tempRed;
     static uint8_t tempGreen;
     static uint8_t tempBlue;
@@ -94,9 +97,6 @@ void sequentialMode(uint8_t sNo, uint32_t period){
     static bool    init = false;
     static uint8_t prevSNo;
     static uint8_t step;
-    uint32_t startTick = 0;
-    uint32_t sumTicks = 0;
-    uint32_t timeDelay = period/255;
 
     if (prevSNo != sNo) {
         step = 1;
@@ -141,12 +141,6 @@ void sequentialMode(uint8_t sNo, uint32_t period){
                 }
             }
 
-            /* period between 2 phases */
-            // startTick = xTaskGetTickCount();
-            // do {
-            //     sumTicks = xTaskGetTickCount() - startTick;
-            // } while (10 * sumTicks < timeDelay);
-
             break;
 
         /* PINK -> SEA -> YELLOW -> PINK  (fade) */
@@ -184,12 +178,6 @@ void sequentialMode(uint8_t sNo, uint32_t period){
                         break;
                 }
             }
-
-            /* period between 2 phases */
-            // startTick = xTaskGetTickCount();
-            // do {
-            //     sumTicks = xTaskGetTickCount() - startTick;
-            // } while (10 * sumTicks < timeDelay);
 
             break;
 
@@ -231,12 +219,6 @@ void sequentialMode(uint8_t sNo, uint32_t period){
                 }
             }
 
-            /* period between 2 phases */
-            // startTick = xTaskGetTickCount();
-            // do {
-            //     sumTicks = xTaskGetTickCount() - startTick;
-            // } while (10 * sumTicks < timeDelay);
-            
             break;
         
         /* RED -> GREEN -> BLUE (fast change)*/
@@ -275,12 +257,6 @@ void sequentialMode(uint8_t sNo, uint32_t period){
                 }
             }
 
-            /* period between 2 phases */
-            // startTick = xTaskGetTickCount();
-            // do {
-            //     sumTicks = xTaskGetTickCount() - startTick;
-            // } while (10 * sumTicks < timeDelay);
-            // break;
         break;
         default:
             ESP_LOGW("rgb","sequence number unknown????");
@@ -473,13 +449,6 @@ void originalMode(colors_t first, colors_t through, colors_t last, uint32_t peri
     color[GREEN].value = actualColor.green;
     color[BLUE].value = actualColor.blue;
 
-    // uint32_t startTick = 0;
-    // uint32_t sumTicks = 0;
-    // uint32_t timeDelay = period/255;
-    // startTick = xTaskGetTickCount();
-    // do {
-    //     sumTicks = xTaskGetTickCount() - startTick;
-    // } while (10 * sumTicks < timeDelay);
 }
 
 
@@ -510,13 +479,6 @@ void rgbController_main(void *pvParameters) {
             color[RED].value = redColorHandler.getValue();
             color[GREEN].value = greenColorHandler.getValue();
             color[BLUE].value = blueColorHandler.getValue();
-            uint32_t startTick = xTaskGetTickCount();
-            uint32_t sumTicks=0;
-            /* wait for the moment */
-            // do {
-            //     sumTicks = xTaskGetTickCount() - startTick;
-            // } while (10 * sumTicks < 100);
-            // vTaskDelay(pdMS_TO_TICKS(50));
         }
 
         else if (generalMode == 3) {     // Sequence mode

@@ -13,7 +13,7 @@ typedef enum {
 } led_t;
 
 
-void led_main_task(void);
+void led_main_task(void *pvParameters);
 void led_init();
 
 

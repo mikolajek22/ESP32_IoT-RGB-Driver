@@ -4,5 +4,5 @@
 
 /* queue for ISR interrupts */
 extern QueueHandle_t timerQueue;
-void diagnostic_main(void);
+void diagnostic_main(void *pvParameters);
 void diagnostic_init();

@@ -27,7 +27,7 @@ static net_disp_t net_disp;
 menu_t menu;
 OLED_CONTROLLER *controller;
 uint8_t dispIpAddr[4];
-void oled_controller_main() {
+void oled_controller_main(void *pvParameters) {
     controller = new OLED_CONTROLLER();
     menu.actualPage = TIME_PAGE;
     while(1) {

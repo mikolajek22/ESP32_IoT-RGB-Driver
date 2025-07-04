@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 #include "sntp_sync.h"
-void oled_controller_main();
+void oled_controller_main(void *pvParameters);
 #ifdef __cplusplus
 }
 #endif

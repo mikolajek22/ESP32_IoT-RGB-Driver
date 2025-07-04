@@ -1,7 +1,7 @@
 #include "led.h"
 
 
-void led_main_task(void) {
+void led_main_task(void *pvParameters) {
     while (1) {
         // led_set(LED_RUN);
         led_reset(LED_RUN);

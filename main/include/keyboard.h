@@ -24,7 +24,7 @@ typedef enum {
     BTN_5_RELEASED,
 } btn_Status_t;
 
-void keyboard_main_task(void);
+void keyboard_main_task(void *pvParameters);
 void keyboard_init();
 
 #ifdef __cplusplus

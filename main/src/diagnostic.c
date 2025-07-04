@@ -35,7 +35,7 @@ void diagnostic_init() {
 
 }
 
-void diagnostic_main(void) {
+void diagnostic_main(void *pvParameters) {
     int signal;
     const char* diagnosticTag = "DIAGNOSTIC";
     while (1) {
