@@ -76,9 +76,9 @@ void OLED_CONTROLLER::oled_controller_time_page() {
 
   this->oled_controller_drawFrame();
 
-  gfx->GFX_DrawString(LINE_X_OFFSET, LINE_Y_OFFSET,                         "IOT RGB Driver", WHITE, BLACK);
-  gfx->GFX_DrawString(LINE_X_OFFSET, LINE_Y_OFFSET + LINE_Y_DIFF,           "date:", WHITE, BLACK);
-  gfx->GFX_DrawString(LINE_X_OFFSET, LINE_Y_OFFSET + 2 * LINE_Y_DIFF,       "time:", WHITE, BLACK);
+  gfx->GFX_DrawString(LINE_X_OFFSET, LINE_Y_OFFSET,                         (char*)"IOT RGB Driver", WHITE, BLACK);
+  gfx->GFX_DrawString(LINE_X_OFFSET, LINE_Y_OFFSET + LINE_Y_DIFF,           (char*)"date:", WHITE, BLACK);
+  gfx->GFX_DrawString(LINE_X_OFFSET, LINE_Y_OFFSET + 2 * LINE_Y_DIFF,       (char*)"time:", WHITE, BLACK);
   gfx->GFX_DrawString(12 * LINE_X_OFFSET, LINE_Y_OFFSET + LINE_Y_DIFF,      date, WHITE, BLACK);
   gfx->GFX_DrawString(12 * LINE_X_OFFSET, LINE_Y_OFFSET + 2 * LINE_Y_DIFF,  time, WHITE, BLACK);
 }
@@ -149,9 +149,9 @@ void OLED_CONTROLLER::oled_controller_ipAddr_page() {
     snprintf(ipAddr, sizeof(ipAddr), "%d.%d.%d.%d", IP2STR(&connectionInfo.netmask));
   }
 
-  gfx->GFX_DrawString(MENU_X_OFFSET, LINE_Y_OFFSET, "ip address:", WHITE, BLACK);
+  gfx->GFX_DrawString(MENU_X_OFFSET, LINE_Y_OFFSET, (char*)"ip address:", WHITE, BLACK);
   gfx->GFX_DrawString(MENU_X_OFFSET, LINE_Y_OFFSET + MENU_Y_DIFF, ipAddr, WHITE, BLACK);
-  gfx->GFX_DrawString(MENU_X_OFFSET, LINE_Y_OFFSET + 2 * MENU_Y_DIFF, "back", WHITE, BLACK);
+  gfx->GFX_DrawString(MENU_X_OFFSET, LINE_Y_OFFSET + 2 * MENU_Y_DIFF, (char*)"back", WHITE, BLACK);
   return;
 }
 
@@ -162,7 +162,7 @@ void OLED_CONTROLLER::oled_controller_reboot_page() {
 
   this->oled_controller_drawFrame();
   snprintf(leftToRebootSec, 8, "%d", leftToReboot);
-  gfx->GFX_DrawString(MENU_X_OFFSET, LINE_Y_OFFSET, "Rebooting ...", WHITE, BLACK);
+  gfx->GFX_DrawString(MENU_X_OFFSET, LINE_Y_OFFSET, (char*)"Rebooting ...", WHITE, BLACK);
 
   gfx->GFX_DrawString(60, 31, leftToRebootSec, WHITE, BLACK);
   gfx->GFX_DrawCircle(62, 35, 10, WHITE);
